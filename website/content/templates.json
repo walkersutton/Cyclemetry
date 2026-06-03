@@ -22,6 +22,17 @@
     "jsonUrl": "https://raw.githubusercontent.com/walkersutton/cyclemetry/main/templates/crit/crit.json"
   },
   {
+    "name": "gta",
+    "displayName": "GTA",
+    "design": {
+      "label": "YouTube Inspo",
+      "url": "https://www.youtube.com/watch?v=GLpyHptx8lQ"
+    },
+    "previewUrl": "/templates/gta/preview.jpg",
+    "githubUrl": "https://github.com/walkersutton/cyclemetry/tree/main/templates/gta",
+    "jsonUrl": "https://raw.githubusercontent.com/walkersutton/cyclemetry/main/templates/gta/gta.json"
+  },
+  {
     "name": "jeff",
     "displayName": "Jeff",
     "design": {

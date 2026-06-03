@@ -8,6 +8,7 @@ Community templates are browsable and installable directly from within Cyclemetr
 | --- | --- |
 | **Aaron** | ![Aaron](aaron/preview.jpg) |
 | **Crit** | ![Crit](crit/preview.jpg) |
+| **GTA** | ![GTA](gta/preview.jpg) |
 | **Jeff** | ![Jeff](jeff/preview.jpg) |
 | **NorCal** | ![NorCal](norcal/preview.jpg) |
 | **Safa** | ![Safa](safa/preview.jpg) |
