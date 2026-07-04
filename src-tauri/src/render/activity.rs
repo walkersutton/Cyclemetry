@@ -78,7 +78,6 @@ impl Activity {
     }
 
     pub fn from_fit(path: &str) -> Result<Self, String> {
-        use fitparser::profile::MesgNum;
         use std::fs::File;
         use std::io::BufReader;
 
@@ -86,6 +85,14 @@ impl Activity {
         let mut reader = BufReader::new(file);
         let records = fitparser::from_reader(&mut reader)
             .map_err(|e| format!("Failed to parse FIT file: {e}"))?;
+        Self::from_fit_records(records)
+    }
+
+    /// Build an activity from already-parsed FIT records. Split out from
+    /// `from_fit` so the FIT parser can be unit-tested without a binary
+    /// `.fit` fixture.
+    fn from_fit_records(records: Vec<fitparser::FitDataRecord>) -> Result<Self, String> {
+        use fitparser::profile::MesgNum;
 
         let mut points: Vec<TrackPoint> = Vec::new();
         let mut cur_front_gear: Option<f64> = None;
@@ -143,6 +150,8 @@ impl Activity {
                     let mut cadence: Option<f64> = None;
                     let mut power: Option<f64> = None;
                     let mut temperature: Option<f64> = None;
+                    let mut speed: Option<f64> = None;
+                    let mut enhanced_speed: Option<f64> = None;
                     let mut time_str: Option<String> = None;
                     let mut front_gear = cur_front_gear;
                     let mut rear_gear = cur_rear_gear;
@@ -167,6 +176,8 @@ impl Activity {
                             "cadence" => cadence = fit_f64(field.value()),
                             "power" => power = fit_f64(field.value()),
                             "temperature" => temperature = fit_f64(field.value()),
+                            "speed" => speed = fit_f64(field.value()),
+                            "enhanced_speed" => enhanced_speed = fit_f64(field.value()),
                             "front_gear" => {
                                 front_teeth = fit_f64(field.value());
                             }
@@ -187,6 +198,8 @@ impl Activity {
                             _ => {}
                         }
                     }
+                    let speed = enhanced_speed.or(speed);
+
                     if front_teeth.is_some() || front_num.is_some() {
                         front_gear = front_teeth.or(front_num);
                     }
@@ -214,6 +227,7 @@ impl Activity {
                             temperature,
                             front_gear,
                             rear_gear,
+                            speed,
                         });
                     }
                 }
@@ -296,6 +310,9 @@ impl Activity {
                             }
                             "Watts" | "PowerInWatts" if in_extensions => {
                                 pt.power = current_text.parse().ok();
+                            }
+                            "Speed" if in_extensions => {
+                                pt.speed = current_text.parse::<f64>().ok().filter(|v| v.is_finite());
                             }
                             "front_gear" | "frontGear" | "front_gear_num" if in_extensions => {
                                 pt.front_gear = current_text.parse().ok();
@@ -466,6 +483,9 @@ impl Activity {
                             "power" | "PowerInWatts" | "watts" => {
                                 pt.power = current_text.parse().ok();
                             }
+                            "speed" => {
+                                pt.speed = current_text.parse::<f64>().ok().filter(|v| v.is_finite());
+                            }
                             "TrackPointExtension" => {
                                 in_tpx = false;
                             }
@@ -587,14 +607,19 @@ impl Activity {
                     .unwrap_or(0.0),
             );
 
-            // Speed: distance/time between consecutive points
-            let spd = if i == 0 {
-                0.0
-            } else {
-                let prev = &points[i - 1];
-                let dist = haversine_m(prev.lat, prev.lon, pt.lat, pt.lon);
-                let dt = time_delta_seconds(prev.time_str.as_deref(), pt.time_str.as_deref());
-                if dt > 0.0 { dist / dt } else { 0.0 }
+            // Speed in m/s: prefer the device-reported value when the source file
+            // provides one (more accurate, already smoothed). Fall back to the
+            // GPS position/time derivative for points without a native value.
+            // Per-point fallback keeps the series continuous across sensor gaps.
+            let spd = match pt.speed {
+                Some(v) => v,
+                None if i == 0 => 0.0,
+                None => {
+                    let prev = &points[i - 1];
+                    let dist = haversine_m(prev.lat, prev.lon, pt.lat, pt.lon);
+                    let dt = time_delta_seconds(prev.time_str.as_deref(), pt.time_str.as_deref());
+                    if dt > 0.0 { dist / dt } else { 0.0 }
+                }
             };
             activity.speed.push(spd);
 
@@ -1017,6 +1042,9 @@ struct TrackPoint {
     temperature: Option<f64>,
     front_gear: Option<f64>,
     rear_gear: Option<f64>,
+    /// Native device-reported speed in m/s, if the source file provides one.
+    /// `None` for GPS-only files, where speed is derived from position deltas.
+    speed: Option<f64>,
 }
 
 // ─── Smoothing algorithms ──────────────────────────────────────────────────
@@ -1348,6 +1376,160 @@ mod tests {
         assert_eq!(activity.rear_gear, vec![11.0, 12.0]);
         assert_eq!(activity.gear, vec![211.0, 212.0]);
         assert_eq!(decode_gear(activity.gear[1]), Some((2, 12)));
+    }
+
+    // The three tests below prove the asserted speeds can only have come from
+    // the file's native speed field (not a computed haversine/dt fallback),
+    // across each format's real-world field-name variants. The GPX and TCX
+    // tests pin two points to an *identical* position so a computed speed would
+    // be ~0; the FIT test uses a single point, whose fallback speed is always
+    // 0.0 by definition (index 0 has no previous point to derive from).
+
+    #[test]
+    fn gpx_native_speed_field_variants() {
+        // Parse two trackpoints whose speed is expressed by `inner`; the
+        // local-name match collapses every namespace prefix to "speed".
+        let speeds = |inner_a: &str, inner_b: &str| {
+            let gpx = format!(
+                r#"<gpx xmlns:gpxtpx="http://www.garmin.com/xmlschemas/TrackPointExtension/v2"
+                        xmlns:gpxdata="http://www.cluetrust.com/XML/GPXDATA/1/0">
+                  <trk><trkseg>
+                    <trkpt lat="1" lon="2"><time>2026-01-01T00:00:00Z</time>{inner_a}</trkpt>
+                    <trkpt lat="1" lon="2"><time>2026-01-01T00:00:01Z</time>{inner_b}</trkpt>
+                  </trkseg></trk>
+                </gpx>"#
+            );
+            Activity::parse_gpx(&gpx).unwrap().speed
+        };
+
+        // bare <speed> (GPX 1.0, direct child of trkpt)
+        assert_eq!(speeds("<speed>5.0</speed>", "<speed>7.5</speed>"), vec![5.0, 7.5]);
+
+        // Garmin TrackPointExtension v2: <gpxtpx:speed> inside <extensions>
+        assert_eq!(
+            speeds(
+                "<extensions><gpxtpx:TrackPointExtension><gpxtpx:speed>5.0</gpxtpx:speed></gpxtpx:TrackPointExtension></extensions>",
+                "<extensions><gpxtpx:TrackPointExtension><gpxtpx:speed>7.5</gpxtpx:speed></gpxtpx:TrackPointExtension></extensions>",
+            ),
+            vec![5.0, 7.5]
+        );
+
+        // Cluetrust GPXDATA extension: <gpxdata:speed>
+        assert_eq!(
+            speeds(
+                "<extensions><gpxdata:speed>5.0</gpxdata:speed></extensions>",
+                "<extensions><gpxdata:speed>7.5</gpxdata:speed></extensions>",
+            ),
+            vec![5.0, 7.5]
+        );
+    }
+
+    #[test]
+    fn tcx_native_speed_field_variants() {
+        // Speed lives in the TPX extension; local-name is "Speed" regardless of
+        // the namespace prefix (ns3: for Garmin's ActivityExtension, or none).
+        let speeds = |speed_a: &str, speed_b: &str| {
+            let tcx = format!(
+                r#"<TrainingCenterDatabase xmlns:ns3="http://www.garmin.com/xmlschemas/ActivityExtension/v2">
+                  <Activities><Activity><Lap><Track>
+                    <Trackpoint>
+                      <Time>2026-01-01T00:00:00Z</Time>
+                      <Position><LatitudeDegrees>1</LatitudeDegrees><LongitudeDegrees>2</LongitudeDegrees></Position>
+                      <Extensions><ns3:TPX>{speed_a}</ns3:TPX></Extensions>
+                    </Trackpoint>
+                    <Trackpoint>
+                      <Time>2026-01-01T00:00:01Z</Time>
+                      <Position><LatitudeDegrees>1</LatitudeDegrees><LongitudeDegrees>2</LongitudeDegrees></Position>
+                      <Extensions><ns3:TPX>{speed_b}</ns3:TPX></Extensions>
+                    </Trackpoint>
+                  </Track></Lap></Activity></Activities>
+                </TrainingCenterDatabase>"#
+            );
+            Activity::parse_tcx(&tcx).unwrap().speed
+        };
+
+        // Garmin ActivityExtension v2: <ns3:Speed>
+        assert_eq!(
+            speeds("<ns3:Speed>5.0</ns3:Speed>", "<ns3:Speed>7.5</ns3:Speed>"),
+            vec![5.0, 7.5]
+        );
+
+        // Prefix-less <Speed> (same local name)
+        assert_eq!(
+            speeds("<Speed>5.0</Speed>", "<Speed>7.5</Speed>"),
+            vec![5.0, 7.5]
+        );
+    }
+
+    #[test]
+    fn fit_native_speed_field_variants() {
+        use fitparser::profile::MesgNum;
+        use fitparser::{FitDataField, FitDataRecord, Value};
+
+        // The FIT field-definition number is required by FitDataField::new, but
+        // from_fit_records matches purely on field.name() and never reads the
+        // number, so every field here uses the same placeholder to make clear
+        // the specific value carries no meaning in this test.
+        const FIELD_NUM_UNUSED: u8 = 0;
+
+        // One GPS Record with a position plus the given speed fields, pushed in
+        // order (first-seen wins in the parser). Position is required for the
+        // point to be kept; its value is irrelevant to the speed assertion.
+        let speed_of = |speed_fields: &[(&str, f64)]| {
+            let mut rec = FitDataRecord::new(MesgNum::Record);
+            rec.push(FitDataField::new(
+                "position_lat".into(),
+                FIELD_NUM_UNUSED,
+                Value::SInt32(0),
+                "semicircles".into(),
+            ));
+            rec.push(FitDataField::new(
+                "position_long".into(),
+                FIELD_NUM_UNUSED,
+                Value::SInt32(0),
+                "semicircles".into(),
+            ));
+            for &(name, v) in speed_fields {
+                rec.push(FitDataField::new(
+                    name.into(),
+                    FIELD_NUM_UNUSED,
+                    Value::Float64(v),
+                    "m/s".into(),
+                ));
+            }
+            Activity::from_fit_records(vec![rec]).unwrap().speed
+        };
+
+        // plain `speed`
+        assert_eq!(speed_of(&[("speed", 8.5)]), vec![8.5]);
+        // `enhanced_speed`
+        assert_eq!(speed_of(&[("enhanced_speed", 9.25)]), vec![9.25]);
+        // both present, speed seen first → enhanced_speed still wins
+        assert_eq!(
+            speed_of(&[("speed", 8.5), ("enhanced_speed", 9.25)]),
+            vec![9.25]
+        );
+    }
+
+    #[test]
+    fn falls_back_to_computed_speed_without_native() {
+        // No <speed> element: speed is derived from position/time deltas.
+        let gpx = r#"
+        <gpx>
+          <trk><trkseg>
+            <trkpt lat="1" lon="2">
+              <time>2026-01-01T00:00:00Z</time>
+            </trkpt>
+            <trkpt lat="1" lon="2.001">
+              <time>2026-01-01T00:00:01Z</time>
+            </trkpt>
+          </trkseg></trk>
+        </gpx>
+        "#;
+        let activity = Activity::parse_gpx(gpx).unwrap();
+        assert_eq!(activity.speed[0], 0.0);
+        // ~0.001° of longitude at the equator over 1s → tens of m/s, clearly > 0.
+        assert!(activity.speed[1] > 0.0);
     }
 
     #[test]
