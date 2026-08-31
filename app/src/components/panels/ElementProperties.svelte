@@ -1494,23 +1494,21 @@ Looks unrealistic for ${item.value} (expected ${issue.expected}). Enter a manual
       </section>
 
       {#if showAdvanced}
-      {#if item.value === 'elevation'}
-      <!-- X-axis basis: time (sample index) vs distance travelled -->
-      <section class="mb-4 space-y-2">
-        <p class="text-[10px] uppercase tracking-wider text-zinc-600">X-Axis</p>
-        <label class="flex items-center justify-between gap-3 rounded-[6px] border border-zinc-800 bg-zinc-900/40 px-2.5 py-2">
-          <span class="text-xs text-zinc-500">Distance-based</span>
-          <Switch
-            checked={item.x_axis === 'distance'}
-            ariaLabel="Distance-based x-axis"
-            onchange={(v) => update('x_axis', v ? 'distance' : undefined)}
-          />
-        </label>
-        <p class="text-[10px] text-zinc-600 italic">
-          Off: evenly spaced by time. On: horizontal position reflects distance travelled.
-        </p>
-      </section>
-      {/if}
+        <!-- X-axis basis: time (sample index) vs distance travelled. A course
+             plots geography and `distance` is already the axis, so neither
+             offers the choice. -->
+        {#if item.value !== 'course' && item.value !== 'distance'}
+        <section class="mb-4 space-y-2">
+          <p class="text-[10px] uppercase tracking-wider text-zinc-600">X-Axis</p>
+          <label class="flex items-center justify-between gap-3 rounded-[6px] border border-transparent bg-[var(--panel2)] px-2.5 py-2">
+            <span class="text-xs text-zinc-500">Distance-based</span>
+            <Switch checked={item.x_axis === 'distance'} ariaLabel="Distance-based x-axis" onchange={(v) => update('x_axis', v ? 'distance' : undefined)} />
+          </label>
+          <p class="text-[10px] text-zinc-600 italic">
+            Off: evenly spaced by time. On: horizontal position reflects distance travelled.
+          </p>
+        </section>
+        {/if}
       <!-- Fill -->
       <section class="mb-4 space-y-2">
         <p class="text-[10px] uppercase tracking-wider text-zinc-600">Fill</p>

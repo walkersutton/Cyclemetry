@@ -1585,7 +1585,15 @@ impl Activity {
     /// travelled distance as the horizontal axis, anything else uses evenly
     /// spaced sample indices (i.e. time at constant frame rate).
     pub fn plot_data(&self, attribute: &str, x_axis: Option<&str>) -> (Vec<f64>, Vec<f64>) {
-        let distance_based = x_axis == Some("distance");
+        // A distance axis needs an actual span to map onto: a stationary ride
+        // (indoor, or a track with repeated coords) yields a flat array that
+        // would collapse every point onto the left edge, so fall back to
+        // sample indices. `distance` is monotonic, so the ends bound the span.
+        let distance_spans = matches!(
+            (self.distance.first(), self.distance.last()),
+            (Some(first), Some(last)) if last > first
+        );
+        let distance_based = x_axis == Some("distance") && distance_spans;
         let scalar = |data: &[f64]| -> (Vec<f64>, Vec<f64>) {
             if distance_based && attribute != ATTR_DISTANCE && data.len() == self.distance.len() {
                 (self.distance.clone(), data.to_vec())
@@ -2680,6 +2688,20 @@ mod tests {
         let (x, y) = activity.plot_data(ATTR_DISTANCE, Some("distance"));
         assert_eq!(x, vec![0.0, 1.0, 2.0]);
         assert_eq!(y, vec![0.0, 5.0, 15.0]);
+    }
+
+    #[test]
+    fn plot_data_falls_back_to_indices_when_distance_is_flat() {
+        // A stationary ride has no distance span to map onto — using it as the
+        // axis would collapse the whole plot onto the left edge.
+        let mut activity = Activity::default();
+        activity.distance = vec![0.0, 0.0, 0.0];
+        activity.elevation = vec![10.0, 20.0, 10.0];
+        activity.valid_attributes = vec![ATTR_DISTANCE.to_string(), ATTR_ELEVATION.to_string()];
+
+        let (x, y) = activity.plot_data(ATTR_ELEVATION, Some("distance"));
+        assert_eq!(x, vec![0.0, 1.0, 2.0]);
+        assert_eq!(y, vec![10.0, 20.0, 10.0]);
     }
 }
 
