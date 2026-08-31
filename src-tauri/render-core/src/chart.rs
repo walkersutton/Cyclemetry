@@ -816,11 +816,37 @@ fn draw_banded_fill(
     }
     let base_y = to_px(*x_data.first()?, y_base).y;
 
+    // Map a pixel column to a fractional position along the series. Under a
+    // uniform x-axis index and pixel space agree, but a distance-based axis is
+    // non-uniform: stepping by index would under-sample fast descents (chunky
+    // fill, coarse band edges) and pile many samples into one column wherever
+    // the rider was stopped. Walk the x range instead whenever x is monotonic;
+    // a course's x is longitude and doubles back, so it keeps index stepping.
+    let monotonic_x = x_data.windows(2).all(|w| w[1] >= w[0]);
+    let x_first = *x_data.first()?;
+    let span_x = *x_data.last()? - x_first;
+    let position_at = |c: i32| -> f64 {
+        let frac = c as f64 / cols_n as f64;
+        if !monotonic_x || span_x <= 0.0 {
+            return frac * (n - 1) as f64;
+        }
+        let target = x_first + span_x * frac;
+        let j = x_data.partition_point(|&x| x < target).clamp(1, n - 1);
+        let i = j - 1;
+        let (x0, x1) = (x_data[i], x_data[j]);
+        i as f64
+            + if x1 > x0 {
+                (target - x0) / (x1 - x0)
+            } else {
+                0.0
+            }
+    };
+
     // Per pixel column: (x px, curve y px, band index).
     let cols: Vec<(f32, f32, usize)> = (0..=cols_n)
         .map(|c| {
-            let pos = c as f64 / cols_n as f64 * (n - 1) as f64;
-            let i = pos.floor() as usize;
+            let pos = position_at(c);
+            let i = (pos.floor() as usize).min(n - 1);
             let j = (i + 1).min(n - 1);
             let f = pos - i as f64;
             let x = x_data[i] + (x_data[j] - x_data[i]) * f;
@@ -990,6 +1016,46 @@ mod tests {
         assert_eq!(pixel(&cache.background, 300, 140), (0x16, 0x73, 0xf9, 0xff));
         // Above the curve stays transparent.
         assert_eq!(pixel(&cache.background, 100, 10), (0, 0, 0, 0));
+    }
+
+    #[test]
+    fn banded_fill_resolves_band_edges_on_a_non_uniform_x_axis() {
+        // Distance-axis case: 1980 dense samples crammed into the leftmost 1%
+        // of the width (a slow climb), then 20 sparse samples covering the
+        // remaining 99% (a fast descent). Sampling the fill by index would
+        // spend 396 of 400 columns on those first 4 pixels and leave the band
+        // edge in the sparse half quantised to the nearest ~100px column.
+        let config: crate::template::PlotConfig = serde_json::from_value(serde_json::json!({
+            "id": "plot-0",
+            "type": "plot",
+            "value": "elevation",
+            "x": 0, "y": 0, "width": 400, "height": 150,
+            "color_by": { "value": "gradient" }
+        }))
+        .unwrap();
+        let n = 2000;
+        let dense = 1980;
+        let x: Vec<f64> = (0..n)
+            .map(|i| {
+                if i < dense {
+                    i as f64 / dense as f64 * 10.0
+                } else {
+                    10.0 + (i - dense) as f64 / (n - dense) as f64 * 990.0
+                }
+            })
+            .collect();
+        let y: Vec<f64> = (0..n).map(|i| i as f64 / n as f64 * 100.0).collect();
+        // Band flips green → orange at index 1988, i.e. x = 406 → pixel 162.
+        let grade: Vec<f64> = (0..n).map(|i| if i < 1988 { 2.0 } else { 8.0 }).collect();
+        let cache = ChartCache::build(&config, x, y, Vec::new(), Vec::new(), grade, "/nonexistent")
+            .unwrap();
+        assert!(cache.banding.is_some());
+
+        // Deep under the curve either side of the true edge. Index sampling
+        // would colour pixel 130 orange, having last sampled the series at
+        // pixel 103 and next at 202.
+        assert_eq!(pixel(&cache.background, 130, 140), (0x5e, 0xc5, 0x22, 0xff));
+        assert_eq!(pixel(&cache.background, 250, 140), (0x16, 0x73, 0xf9, 0xff));
     }
 
     #[test]

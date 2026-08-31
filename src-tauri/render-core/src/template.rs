@@ -430,6 +430,10 @@ pub struct PlotConfig {
     pub markers: Option<Vec<CourseMarkerConfig>>,
     pub point_label: Option<PointLabelConfig>,
     pub rotation: Option<f32>,
+    /// X-axis basis for non-course scalar plots: "time" (default; evenly spaced
+    /// samples) or "distance" (horizontal position = distance travelled).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub x_axis: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

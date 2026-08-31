@@ -1581,10 +1581,26 @@ impl Activity {
     }
 
     /// Build (x, y) data arrays for a plot of the given attribute.
-    pub fn plot_data(&self, attribute: &str) -> (Vec<f64>, Vec<f64>) {
+    /// `x_axis` only affects non-course scalar plots: "distance" uses the
+    /// travelled distance as the horizontal axis, anything else uses evenly
+    /// spaced sample indices (i.e. time at constant frame rate).
+    pub fn plot_data(&self, attribute: &str, x_axis: Option<&str>) -> (Vec<f64>, Vec<f64>) {
+        // A distance axis needs an actual span to map onto: a stationary ride
+        // (indoor, or a track with repeated coords) yields a flat array that
+        // would collapse every point onto the left edge, so fall back to
+        // sample indices. `distance` is monotonic, so the ends bound the span.
+        let distance_spans = matches!(
+            (self.distance.first(), self.distance.last()),
+            (Some(first), Some(last)) if last > first
+        );
+        let distance_based = x_axis == Some("distance") && distance_spans;
         let scalar = |data: &[f64]| -> (Vec<f64>, Vec<f64>) {
-            let x: Vec<f64> = (0..data.len()).map(|i| i as f64).collect();
-            (x, data.to_vec())
+            if distance_based && attribute != ATTR_DISTANCE && data.len() == self.distance.len() {
+                (self.distance.clone(), data.to_vec())
+            } else {
+                let x: Vec<f64> = (0..data.len()).map(|i| i as f64).collect();
+                (x, data.to_vec())
+            }
         };
         match attribute {
             ATTR_DISTANCE => scalar(&self.distance),
@@ -1962,7 +1978,7 @@ mod tests {
         assert!(out.route_distance.windows(2).all(|w| w[1] >= w[0]));
 
         // Course plots draw from `route`, so the plotted line stays full-density.
-        let (x, y) = out.plot_data(ATTR_COURSE);
+        let (x, y) = out.plot_data(ATTR_COURSE, None);
         assert_eq!(x.len(), 600);
         assert_eq!(y.len(), 600);
     }
@@ -2636,6 +2652,56 @@ mod tests {
         assert_eq!(out.get_running(RUN_DISTANCE, mid), out.distance[mid]);
         // Unknown running token resolves to 0.
         assert_eq!(out.get_running("not_a_metric", mid), 0.0);
+    }
+
+    #[test]
+    fn plot_data_uses_distance_x_axis_when_requested() {
+        let mut activity = Activity::default();
+        activity.distance = vec![0.0, 5.0, 15.0];
+        activity.elevation = vec![10.0, 20.0, 10.0];
+        activity.speed = vec![1.0, 2.0, 3.0];
+        activity.course = vec![(0.0, 0.0), (0.0, 1.0), (0.0, 2.0)];
+        activity.route = vec![(0.0, 0.0), (0.0, 1.0), (0.0, 2.0)];
+        activity.valid_attributes = vec![
+            ATTR_DISTANCE.to_string(),
+            ATTR_ELEVATION.to_string(),
+            ATTR_SPEED.to_string(),
+            ATTR_COURSE.to_string(),
+        ];
+
+        // Default (time/sample-index) x-axis.
+        let (x, y) = activity.plot_data(ATTR_ELEVATION, None);
+        assert_eq!(x, vec![0.0, 1.0, 2.0]);
+        assert_eq!(y, vec![10.0, 20.0, 10.0]);
+
+        // Distance-based x-axis: x mirrors the distance array.
+        let (x, y) = activity.plot_data(ATTR_ELEVATION, Some("distance"));
+        assert_eq!(x, vec![0.0, 5.0, 15.0]);
+        assert_eq!(y, vec![10.0, 20.0, 10.0]);
+
+        // Course plots ignore x_axis (keep geographic lon/lat).
+        let (x, y) = activity.plot_data(ATTR_COURSE, Some("distance"));
+        assert_eq!(x, vec![0.0, 1.0, 2.0]);
+        assert_eq!(y, vec![0.0, 0.0, 0.0]);
+
+        // Distance plot never becomes a diagonal line: falls back to indices.
+        let (x, y) = activity.plot_data(ATTR_DISTANCE, Some("distance"));
+        assert_eq!(x, vec![0.0, 1.0, 2.0]);
+        assert_eq!(y, vec![0.0, 5.0, 15.0]);
+    }
+
+    #[test]
+    fn plot_data_falls_back_to_indices_when_distance_is_flat() {
+        // A stationary ride has no distance span to map onto — using it as the
+        // axis would collapse the whole plot onto the left edge.
+        let mut activity = Activity::default();
+        activity.distance = vec![0.0, 0.0, 0.0];
+        activity.elevation = vec![10.0, 20.0, 10.0];
+        activity.valid_attributes = vec![ATTR_DISTANCE.to_string(), ATTR_ELEVATION.to_string()];
+
+        let (x, y) = activity.plot_data(ATTR_ELEVATION, Some("distance"));
+        assert_eq!(x, vec![0.0, 1.0, 2.0]);
+        assert_eq!(y, vec![10.0, 20.0, 10.0]);
     }
 }
 

@@ -195,6 +195,7 @@ export const isLapMetric = (m) => LAP_METRICS.includes(m)
  * @property {CourseMarkerConfig[]} [markers]
  * @property {PointLabelConfig} [point_label]
  * @property {number} [rotation]
+ * @property {'distance'} [x_axis] Horizontal axis basis for non-course plots; absent = evenly spaced by time.
  */
 
 // Mirrors DEFAULT_GRADIENT_BANDS in src-tauri/src/render/template.rs: descent,

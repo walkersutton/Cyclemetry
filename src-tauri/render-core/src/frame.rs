@@ -375,7 +375,7 @@ fn resample_by_distance(series: &[f64], src_dist: &[f64], dst_dist: &[f64]) -> V
 
 impl OverlayElement for PlotConfig {
     fn build_chart(&self, activity: &Activity, fonts_dir: &str) -> Option<ChartCache> {
-        let (x_data, y_data) = activity.plot_data(&self.value);
+        let (x_data, y_data) = activity.plot_data(&self.value, self.x_axis.as_deref());
         let is_course = self.value == crate::activity::ATTR_COURSE;
         // `distance_data` is the distance axis of the plotted geometry, so for a
         // course it must align with the source-density route, not the frame grid.
@@ -393,7 +393,7 @@ impl OverlayElement for PlotConfig {
             .color_by
             .as_ref()
             .map(|cb| {
-                let series = activity.plot_data(cb.attr()).1;
+                let series = activity.plot_data(cb.attr(), None).1;
                 if is_course {
                     resample_by_distance(&series, &activity.distance, &activity.route_distance)
                 } else {
