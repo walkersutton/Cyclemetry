@@ -75,6 +75,27 @@
   // the scene-level start/finish gate (scene.lap_gate) — see the race bar in
   // PlaybackControls. They need GPS course data to detect crossings.
 
+  // Custom source fields: numeric channels the loaded file carried that have
+  // no built-in attribute — GPX/TCX <extensions> leaves, FIT developer fields.
+  // Unlike every list above they're discovered per activity rather than
+  // declared here, so they come straight off the loaded activity's metrics.
+  const CUSTOM_PREFIX = 'custom:'
+  const isCustomMetric = (m) => typeof m === 'string' && m.startsWith(CUSTOM_PREFIX)
+
+  // Source field names are whatever the recording device wrote ("lean_angle",
+  // "gForceX", "Lean Angle"). Soften them into something readable — split
+  // snake/kebab/camel case, sentence-case the result — without pretending to
+  // know what the field means.
+  function customMetricLabel(m) {
+    const raw = m.slice(CUSTOM_PREFIX.length)
+    const words = raw
+      .replace(/[_-]+/g, ' ')
+      .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+      .replace(/\s+/g, ' ')
+      .trim()
+    return words ? words.charAt(0).toUpperCase() + words.slice(1) : raw
+  }
+
   // Friendly labels for metrics whose raw key isn't self-explanatory.
   const METRIC_LABELS = {
     power_to_weight: 'W/kg',
@@ -99,7 +120,7 @@
     laps_to_go: 'Laps to go',
     lap_fraction: 'Lap count (2/20)',
   }
-  const metricLabel = (m) => METRIC_LABELS[m] ?? m
+  const metricLabel = (m) => METRIC_LABELS[m] ?? (isCustomMetric(m) ? customMetricLabel(m) : m)
   const ALL_PLOT_METRICS = ['elevation', 'speed', 'heartrate', 'power', 'cadence', 'gradient', 'temperature', 'front_gear', 'rear_gear', 'course', 'distance']
   const ALL_METER_METRICS = ['speed', 'heartrate', 'power', 'power_to_weight', 'elevation', 'cadence', 'gradient', 'temperature', 'front_gear', 'rear_gear']
 
@@ -133,6 +154,9 @@
     return valid.includes('course') ? list : []
   }
 
+  // A custom field is just a numeric series, so it works anywhere a built-in
+  // live metric does: value readouts, plots, meters and color-by bands.
+  const CUSTOM_METRICS = $derived((app.activityMetrics ?? []).filter(isCustomMetric))
   const METRICS = $derived(filterMetrics(ALL_METRICS))
   const SUMMARY_METRICS = $derived(filterSummary(ALL_SUMMARY_METRICS))
   const RUNNING_METRICS = $derived(filterRunning(ALL_RUNNING_METRICS))
@@ -141,12 +165,13 @@
   // summary metrics, each in its own labeled group.
   const VALUE_METRIC_OPTIONS = $derived([
     ...METRICS.map((m) => ({ value: m, label: metricLabel(m), group: 'Live' })),
+    ...CUSTOM_METRICS.map((m) => ({ value: m, label: metricLabel(m), group: 'Custom' })),
     ...RUNNING_METRICS.map((m) => ({ value: m, label: metricLabel(m), group: 'Running' })),
     ...LAP_METRICS.map((m) => ({ value: m, label: metricLabel(m), group: 'Laps' })),
     ...SUMMARY_METRICS.map((m) => ({ value: m, label: metricLabel(m), group: 'Summary' })),
   ])
-  const PLOT_METRICS = $derived(filterMetrics(ALL_PLOT_METRICS))
-  const METER_METRICS = $derived(filterMetrics(ALL_METER_METRICS))
+  const PLOT_METRICS = $derived([...filterMetrics(ALL_PLOT_METRICS), ...CUSTOM_METRICS])
+  const METER_METRICS = $derived([...filterMetrics(ALL_METER_METRICS), ...CUSTOM_METRICS])
   const METER_DIRECTIONS = [
     { value: 'up', label: 'Fill upward' },
     { value: 'down', label: 'Fill downward' },
@@ -155,7 +180,7 @@
   ]
   // Metrics that can drive plot band colors (must have per-frame plot data).
   const ALL_COLOR_BY_METRICS = ['gradient', 'speed', 'power', 'heartrate', 'cadence', 'temperature', 'elevation']
-  const COLOR_BY_METRICS = $derived(filterMetrics(ALL_COLOR_BY_METRICS))
+  const COLOR_BY_METRICS = $derived([...filterMetrics(ALL_COLOR_BY_METRICS), ...CUSTOM_METRICS])
   const COLOR_BY_MODES = [
     { value: 'fill', label: 'Fill under curve' },
     { value: 'line', label: 'Line' },
@@ -1401,7 +1426,7 @@ Looks unrealistic for ${item.value} (expected ${issue.expected}). Enter a manual
         <p class="text-[10px] uppercase tracking-wider text-zinc-600">Metric</p>
         <Select
           value={item.value ?? ''}
-          options={PLOT_METRICS.map((m) => ({ value: m, label: m === 'course' ? 'course (map)' : m }))}
+          options={PLOT_METRICS.map((m) => ({ value: m, label: m === 'course' ? 'course (map)' : metricLabel(m) }))}
           onchange={(v) => update('value', v)}
         />
       </section>
