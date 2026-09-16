@@ -1,5 +1,6 @@
 use quick_xml::events::Event;
 use quick_xml::reader::Reader;
+use std::collections::BTreeMap;
 
 pub const ATTR_CADENCE: &str = "cadence";
 pub const ATTR_COURSE: &str = "course";
@@ -65,6 +66,118 @@ pub const LAP_FRACTION: &str = "lap_fraction";
 /// Whether `name` is a lap metric token.
 pub fn is_lap_metric(name: &str) -> bool {
     matches!(name, ATTR_LAP | LAP_LAPS_TO_GO | LAP_FRACTION)
+}
+
+// ─── Custom source fields ──────────────────────────────────────────────────
+// Numeric channels the source file carried that have no built-in attribute:
+// GPX/TCX `<extensions>` leaves and FIT record fields (developer fields
+// included) outside the profile this app models. They are discovered per
+// activity rather than declared here, so a rider gets lean angle, g-force, or
+// anything else their head unit records without the app shipping a constant
+// for it. Each becomes a `custom:<field name>` token backed by a series in
+// [`Activity::custom`], resolved through [`Activity::get_scalar`].
+
+/// Prefix marking a metric token as a custom source field. Field names come
+/// from whatever the recording device wrote, so the prefix is what guarantees
+/// they can never collide with a built-in attribute token.
+pub const CUSTOM_PREFIX: &str = "custom:";
+
+/// Ceiling on distinct custom fields per activity. FIT developer fields and
+/// GPX extension namespaces are open-ended; a bound keeps a pathological file
+/// from turning into hundreds of full-length series and an unusable dropdown.
+const MAX_CUSTOM_FIELDS: usize = 32;
+
+/// Longest custom field name kept. Anything longer is a namespace URI or an
+/// XML blob that leaked through, not a metric a rider would pick from a list.
+const MAX_CUSTOM_NAME_LEN: usize = 48;
+
+/// The source field name behind a `custom:` metric token, or `None` for any
+/// token that is not one.
+pub fn custom_metric_key(name: &str) -> Option<&str> {
+    name.strip_prefix(CUSTOM_PREFIX).filter(|k| !k.is_empty())
+}
+
+/// Whether `name` is a custom metric token.
+pub fn is_custom_metric(name: &str) -> bool {
+    custom_metric_key(name).is_some()
+}
+
+/// Source field names that already feed a built-in attribute, and so must not
+/// also surface as a custom field. The parsers only reach the custom capture
+/// for names they did not match, but a name can be matched in one position and
+/// not another — GPX `<ele>` is read as elevation outside `<extensions>` and
+/// would otherwise reappear as `custom:ele` inside one. Compared
+/// case-insensitively, since the same field is spelled `Watts`, `watts`, and
+/// `PowerInWatts` across the three formats.
+fn is_reserved_custom_name(name: &str) -> bool {
+    const RESERVED: [&str; 34] = [
+        // Built-in attribute tokens.
+        "cadence",
+        "course",
+        "distance",
+        "elevation",
+        "front_gear",
+        "gear",
+        "gradient",
+        "heartrate",
+        "lean",
+        "power",
+        "power_to_weight",
+        "rear_gear",
+        "speed",
+        "temperature",
+        "time",
+        // Source spellings the parsers already consume.
+        "altitude",
+        "atemp",
+        "cad",
+        "ele",
+        "enhanced_altitude",
+        "enhanced_speed",
+        "frontgear",
+        "front_gear_num",
+        "heart_rate",
+        "hr",
+        "lat",
+        "lon",
+        "position_lat",
+        "position_long",
+        "powerinwatts",
+        "reargear",
+        "rear_gear_num",
+        "timestamp",
+        "watts",
+    ];
+    RESERVED.iter().any(|r| r.eq_ignore_ascii_case(name))
+}
+
+/// Record one custom field reading on a track point, rejecting anything that
+/// would not make a usable metric: reserved or malformed names, non-finite
+/// values, and fields past [`MAX_CUSTOM_FIELDS`]. The cap here bounds a single
+/// point; `build_from_points` caps the union across points, which is what
+/// actually becomes series.
+fn insert_custom(custom: &mut BTreeMap<String, f64>, name: &str, value: f64) {
+    let name = name.trim();
+    if name.is_empty()
+        || name.len() > MAX_CUSTOM_NAME_LEN
+        || !value.is_finite()
+        || is_reserved_custom_name(name)
+    {
+        return;
+    }
+    if custom.len() >= MAX_CUSTOM_FIELDS && !custom.contains_key(name) {
+        return;
+    }
+    custom.insert(name.to_string(), value);
+}
+
+/// [`insert_custom`] for the XML parsers, which hold the reading as element
+/// text. Text that is not a plain number (a nested element's leftovers, a
+/// string-valued extension) is silently skipped.
+fn insert_custom_text(custom: &mut BTreeMap<String, f64>, name: &str, text: &str) {
+    if let Ok(value) = text.trim().parse::<f64>() {
+        insert_custom(custom, name, value);
+    }
 }
 
 /// Default start/finish detection radius in metres.
@@ -231,6 +344,12 @@ pub struct Activity {
     pub front_gear: Vec<f64>,
     pub rear_gear: Vec<f64>,
     pub gear: Vec<f64>,
+    /// Per-sample series for source fields with no built-in attribute, keyed by
+    /// source field name and aligned 1:1 with the series above. Read through
+    /// the `custom:<name>` metric token — see the custom source field section
+    /// near the top of this module. Empty for files carrying nothing beyond
+    /// the modelled attributes, which is the common case.
+    pub custom: BTreeMap<String, Vec<f64>>,
     /// Running ascent (metres) accumulated from the first sample up to each
     /// index, aligned 1:1 with the sample series. Backs the
     /// `running_elevation_gain` metric. Built during resampling; empty until
@@ -372,6 +491,7 @@ impl Activity {
                     let mut rear_teeth: Option<f64> = None;
                     let mut front_num: Option<f64> = None;
                     let mut rear_num: Option<f64> = None;
+                    let mut custom: BTreeMap<String, f64> = BTreeMap::new();
 
                     for field in record.fields() {
                         match field.name() {
@@ -408,7 +528,15 @@ impl Activity {
                                     time_str = Some(dt.to_rfc3339());
                                 }
                             }
-                            _ => {}
+                            // Everything the profile above doesn't model — the
+                            // rest of the FIT record profile plus any developer
+                            // fields, which `fitparser` surfaces here under the
+                            // name their field description declares.
+                            name => {
+                                if let Some(value) = fit_f64(field.value()) {
+                                    insert_custom(&mut custom, name, value);
+                                }
+                            }
                         }
                     }
                     let speed = enhanced_speed.or(speed);
@@ -441,6 +569,7 @@ impl Activity {
                             front_gear,
                             rear_gear,
                             speed,
+                            custom,
                         });
                     }
                 }
@@ -544,6 +673,10 @@ impl Activity {
                                 {
                                     points.push(pt);
                                 }
+                            }
+                            // Unmodelled numeric extension fields, as in GPX.
+                            tag if in_extensions => {
+                                insert_custom_text(&mut pt.custom, tag, &current_text);
                             }
                             _ => {}
                         }
@@ -726,6 +859,14 @@ impl Activity {
                                 }
                                 current_point_tag.clear();
                             }
+                            // Any other numeric leaf inside <extensions> — lean
+                            // angle, g-force, whatever the head unit wrote — is
+                            // kept as a custom field. Container elements land
+                            // here too, but their text is empty or another
+                            // element's leftovers, so the parse rejects them.
+                            tag if in_extensions => {
+                                insert_custom_text(&mut pt.custom, tag, &current_text);
+                            }
                             _ => {}
                         }
                     }
@@ -801,6 +942,33 @@ impl Activity {
 
         if valid.contains(ATTR_COURSE) && valid.contains(ATTR_ELEVATION) {
             valid.insert(ATTR_GRADIENT.into());
+        }
+
+        // Custom source fields: flatten each one the points carried into a
+        // full-length series. A field can be missing from individual points (a
+        // sensor sampling slower than the GPS track, or one that only starts
+        // reporting mid-ride), so each series carries the last seen value
+        // forward and reads 0 until its first reading — the same hold-last
+        // behaviour the gears get. Names are unioned over every point for the
+        // same reason the attribute scan above visits every point: a field
+        // absent from the ones sampled would otherwise be dropped entirely.
+        let custom_keys: std::collections::BTreeSet<&str> = points
+            .iter()
+            .flat_map(|p| p.custom.keys().map(String::as_str))
+            .collect();
+        // Points need not carry the same fields, so the union can outrun the
+        // per-point cap; bound it here, where the series are actually built.
+        for key in custom_keys.into_iter().take(MAX_CUSTOM_FIELDS) {
+            let mut series = Vec::with_capacity(n);
+            let mut last = 0.0;
+            for pt in &points {
+                if let Some(&value) = pt.custom.get(key) {
+                    last = value;
+                }
+                series.push(last);
+            }
+            activity.custom.insert(key.to_string(), series);
+            valid.insert(format!("{CUSTOM_PREFIX}{key}"));
         }
 
         activity.valid_attributes = valid.into_iter().collect();
@@ -994,6 +1162,13 @@ impl Activity {
         if !self.laps_completed.is_empty() {
             self.laps_completed = step_interp(&self.laps_completed, fps);
         }
+        // Custom fields are keyed by source name rather than by a constant, so
+        // they sit outside the match above. Nothing is known about what they
+        // measure, so they interpolate as continuous values — the safe default
+        // for a sensor channel, and what every non-gear attribute does.
+        for series in self.custom.values_mut() {
+            *series = linear_interp(series, fps);
+        }
     }
 
     pub fn data_len(&self) -> usize {
@@ -1111,7 +1286,14 @@ impl Activity {
             };
             let t = t.min(duration);
             out.elapsed_seconds.push(t - start);
-            let sample = self.wall_clock_sample(t, gap_threshold);
+            let pos = self.wall_clock_pos(t, gap_threshold);
+            for (key, series) in &self.custom {
+                out.custom
+                    .entry(key.clone())
+                    .or_default()
+                    .push(pos.value(series));
+            }
+            let sample = self.sample_at_pos(pos);
             out.course.push(sample.course);
             out.distance.push(sample.distance);
             out.elevation.push(sample.elevation);
@@ -1180,20 +1362,23 @@ impl Activity {
         (median * 2.0).max(2.0)
     }
 
-    fn wall_clock_sample(&self, t: f64, gap_threshold: f64) -> ActivitySample {
+    /// Where a ride time `t` falls on the raw sample grid. Resolving the
+    /// position once per frame lets the fixed attributes and the open-ended
+    /// custom series read the same instant without repeating the search.
+    fn wall_clock_pos(&self, t: f64, gap_threshold: f64) -> SamplePos {
         let len = self.data_len();
         if len == 0 {
-            return ActivitySample::default();
+            return SamplePos::At(0);
         }
         let idx = self.elapsed_seconds.partition_point(|&x| x < t);
         if idx < len && (self.elapsed_seconds[idx] - t).abs() < 1e-9 {
-            return self.sample_at_index(idx);
+            return SamplePos::At(idx);
         }
         if idx == 0 {
-            return self.sample_at_index(0);
+            return SamplePos::At(0);
         }
         if idx >= len {
-            return self.sample_at_index(len - 1);
+            return SamplePos::At(len - 1);
         }
 
         let prev = idx - 1;
@@ -1201,59 +1386,33 @@ impl Activity {
         let t0 = self.elapsed_seconds[prev];
         let t1 = self.elapsed_seconds[next];
         let dt = t1 - t0;
+        // A gap longer than the recording interval isn't a sample to smear
+        // across — the rider stopped, or the unit dropped out. Hold the last
+        // real reading instead of inventing a ramp through the pause.
         if dt <= 0.0 || dt > gap_threshold {
-            return self.sample_at_index(prev);
+            return SamplePos::At(prev);
         }
         let frac = ((t - t0) / dt).clamp(0.0, 1.0);
-        self.sample_between(prev, next, frac)
+        SamplePos::Between { prev, next, frac }
     }
 
-    fn sample_at_index(&self, index: usize) -> ActivitySample {
+    fn sample_at_pos(&self, pos: SamplePos) -> ActivitySample {
         ActivitySample {
-            course: self.course.get(index).copied().unwrap_or_default(),
-            distance: self.distance.get(index).copied().unwrap_or_default(),
-            elevation: self.elevation.get(index).copied().unwrap_or_default(),
-            gradient: self.gradient.get(index).copied().unwrap_or_default(),
-            heartrate: self.heartrate.get(index).copied().unwrap_or_default(),
-            lean: self.lean.get(index).copied().unwrap_or_default(),
-            speed: self.speed.get(index).copied().unwrap_or_default(),
-            cadence: self.cadence.get(index).copied().unwrap_or_default(),
-            power: self.power.get(index).copied().unwrap_or_default(),
-            temperature: self.temperature.get(index).copied().unwrap_or_default(),
-            front_gear: self.front_gear.get(index).copied().unwrap_or_default(),
-            rear_gear: self.rear_gear.get(index).copied().unwrap_or_default(),
-            gear: self.gear.get(index).copied().unwrap_or_default(),
-            laps_completed: self.laps_completed.get(index).copied().unwrap_or_default(),
-        }
-    }
-
-    fn sample_between(&self, prev: usize, next: usize, frac: f64) -> ActivitySample {
-        let lerp = |data: &[f64]| {
-            let a = data.get(prev).copied().unwrap_or_default();
-            let b = data.get(next).copied().unwrap_or(a);
-            a + frac * (b - a)
-        };
-        let course_a = self.course.get(prev).copied().unwrap_or_default();
-        let course_b = self.course.get(next).copied().unwrap_or(course_a);
-        ActivitySample {
-            course: (
-                course_a.0 + frac * (course_b.0 - course_a.0),
-                course_a.1 + frac * (course_b.1 - course_a.1),
-            ),
-            distance: lerp(&self.distance),
-            elevation: lerp(&self.elevation),
-            gradient: lerp(&self.gradient),
-            heartrate: lerp(&self.heartrate),
-            lean: lerp(&self.lean),
-            speed: lerp(&self.speed),
-            cadence: lerp(&self.cadence),
-            power: lerp(&self.power),
-            temperature: lerp(&self.temperature),
-            front_gear: self.front_gear.get(prev).copied().unwrap_or_default(),
-            rear_gear: self.rear_gear.get(prev).copied().unwrap_or_default(),
-            gear: self.gear.get(prev).copied().unwrap_or_default(),
+            course: pos.course(&self.course),
+            distance: pos.value(&self.distance),
+            elevation: pos.value(&self.elevation),
+            gradient: pos.value(&self.gradient),
+            heartrate: pos.value(&self.heartrate),
+            lean: pos.value(&self.lean),
+            speed: pos.value(&self.speed),
+            cadence: pos.value(&self.cadence),
+            power: pos.value(&self.power),
+            temperature: pos.value(&self.temperature),
+            front_gear: pos.step(&self.front_gear),
+            rear_gear: pos.step(&self.rear_gear),
+            gear: pos.step(&self.gear),
             // Steps like the gears: a lap only advances at a crossing sample.
-            laps_completed: self.laps_completed.get(prev).copied().unwrap_or_default(),
+            laps_completed: pos.step(&self.laps_completed),
         }
     }
 
@@ -1272,7 +1431,9 @@ impl Activity {
             ATTR_FRONT_GEAR => safe(&self.front_gear),
             ATTR_REAR_GEAR => safe(&self.rear_gear),
             ATTR_GEAR => safe(&self.gear),
-            _ => 0.0,
+            other => custom_metric_key(other)
+                .and_then(|key| self.custom.get(key))
+                .map_or(0.0, |series| safe(series)),
         }
     }
 
@@ -1621,7 +1782,53 @@ impl Activity {
                 let y: Vec<f64> = self.route.iter().map(|c| c.0).collect(); // lat
                 (x, y)
             }
-            _ => (vec![], vec![]),
+            other => custom_metric_key(other)
+                .and_then(|key| self.custom.get(key))
+                .map_or_else(|| (vec![], vec![]), |series| scalar(series)),
+        }
+    }
+}
+
+/// A resolved position on the raw sample grid: either exactly on a sample, or
+/// between two adjacent ones. Held separately from the values it reads so one
+/// lookup can serve every series — see [`Activity::wall_clock_pos`].
+#[derive(Clone, Copy)]
+enum SamplePos {
+    At(usize),
+    Between { prev: usize, next: usize, frac: f64 },
+}
+
+impl SamplePos {
+    /// Read a continuous series, interpolating between samples.
+    fn value(self, data: &[f64]) -> f64 {
+        match self {
+            SamplePos::At(index) => data.get(index).copied().unwrap_or_default(),
+            SamplePos::Between { prev, next, frac } => {
+                let a = data.get(prev).copied().unwrap_or_default();
+                let b = data.get(next).copied().unwrap_or(a);
+                a + frac * (b - a)
+            }
+        }
+    }
+
+    /// Read a discrete series, holding the earlier sample's value. Interpolating
+    /// a gear or a lap count would produce readings that never existed.
+    fn step(self, data: &[f64]) -> f64 {
+        let index = match self {
+            SamplePos::At(index) => index,
+            SamplePos::Between { prev, .. } => prev,
+        };
+        data.get(index).copied().unwrap_or_default()
+    }
+
+    fn course(self, data: &[(f64, f64)]) -> (f64, f64) {
+        match self {
+            SamplePos::At(index) => data.get(index).copied().unwrap_or_default(),
+            SamplePos::Between { prev, next, frac } => {
+                let a = data.get(prev).copied().unwrap_or_default();
+                let b = data.get(next).copied().unwrap_or(a);
+                (a.0 + frac * (b.0 - a.0), a.1 + frac * (b.1 - a.1))
+            }
         }
     }
 }
@@ -1662,6 +1869,12 @@ struct TrackPoint {
     /// Native device-reported speed in m/s, if the source file provides one.
     /// `None` for GPS-only files, where speed is derived from position deltas.
     speed: Option<f64>,
+    /// Numeric readings from source fields with no built-in attribute, keyed by
+    /// source field name. A field may be absent from any individual point — a
+    /// sensor sampling slower than the GPS track leaves gaps — so
+    /// `build_from_points` carries the last seen value forward when it flattens
+    /// these into [`Activity::custom`].
+    custom: BTreeMap<String, f64>,
 }
 
 // ─── Smoothing algorithms ──────────────────────────────────────────────────
@@ -2490,6 +2703,214 @@ mod tests {
             speed_of(&[("speed", 8.5), ("enhanced_speed", 9.25)]),
             vec![9.25]
         );
+    }
+
+    // ─── Custom source fields ──────────────────────────────────────────────
+
+    #[test]
+    fn captures_unmodelled_gpx_extensions_as_custom_metrics() {
+        let gpx = r#"
+        <gpx xmlns:v="https://example.com/virb">
+          <trk><trkseg>
+            <trkpt lat="1" lon="2">
+              <time>2026-01-01T00:00:00Z</time>
+              <extensions><v:g_force_lat>0.4</v:g_force_lat><v:lean_angle>12</v:lean_angle></extensions>
+            </trkpt>
+            <trkpt lat="1" lon="2.001">
+              <time>2026-01-01T00:00:01Z</time>
+              <extensions><v:g_force_lat>0.9</v:g_force_lat><v:lean_angle>24</v:lean_angle></extensions>
+            </trkpt>
+          </trkseg></trk>
+        </gpx>
+        "#;
+        let activity = Activity::parse_gpx(gpx).unwrap();
+
+        // Both fields are offered as metrics, under the namespace-stripped
+        // local name the file used.
+        assert!(
+            activity
+                .valid_attributes
+                .contains(&"custom:g_force_lat".to_string())
+        );
+        assert!(
+            activity
+                .valid_attributes
+                .contains(&"custom:lean_angle".to_string())
+        );
+        assert_eq!(activity.custom["g_force_lat"], vec![0.4, 0.9]);
+        // …and read back through the same accessor every built-in metric uses.
+        assert_eq!(activity.get_scalar("custom:g_force_lat", 1), 0.9);
+        assert_eq!(activity.get_scalar("custom:lean_angle", 0), 12.0);
+        // An unknown custom field is 0, not a panic.
+        assert_eq!(activity.get_scalar("custom:nonexistent", 0), 0.0);
+    }
+
+    #[test]
+    fn custom_fields_do_not_shadow_built_in_attributes() {
+        // <ele> and <hr> inside <extensions> are read as elevation and heart
+        // rate; they must not also reappear as custom fields, or the metric
+        // list would offer the same channel twice under two names.
+        let gpx = r#"
+        <gpx xmlns:gpxtpx="http://www.garmin.com/xmlschemas/TrackPointExtension/v2">
+          <trk><trkseg>
+            <trkpt lat="1" lon="2">
+              <time>2026-01-01T00:00:00Z</time>
+              <extensions>
+                <gpxtpx:TrackPointExtension><gpxtpx:hr>140</gpxtpx:hr><gpxtpx:atemp>21</gpxtpx:atemp></gpxtpx:TrackPointExtension>
+                <ele>100</ele>
+                <watts>250</watts>
+                <sensor_battery>87</sensor_battery>
+              </extensions>
+            </trkpt>
+          </trkseg></trk>
+        </gpx>
+        "#;
+        let activity = Activity::parse_gpx(gpx).unwrap();
+
+        let custom: Vec<&String> = activity
+            .valid_attributes
+            .iter()
+            .filter(|a| is_custom_metric(a))
+            .collect();
+        assert_eq!(custom, vec!["custom:sensor_battery"]);
+        assert_eq!(activity.get_scalar("custom:sensor_battery", 0), 87.0);
+    }
+
+    #[test]
+    fn custom_fields_hold_last_reading_across_gaps() {
+        // A sensor reporting slower than the GPS track leaves gaps. The series
+        // reads 0 before its first sample, then holds each reading until the
+        // next one rather than dropping back to zero.
+        let gpx = r#"
+        <gpx>
+          <trk><trkseg>
+            <trkpt lat="1" lon="2"><time>2026-01-01T00:00:00Z</time></trkpt>
+            <trkpt lat="1" lon="2.001">
+              <time>2026-01-01T00:00:01Z</time>
+              <extensions><core_temp>37.5</core_temp></extensions>
+            </trkpt>
+            <trkpt lat="1" lon="2.002"><time>2026-01-01T00:00:02Z</time></trkpt>
+          </trkseg></trk>
+        </gpx>
+        "#;
+        let activity = Activity::parse_gpx(gpx).unwrap();
+        assert_eq!(activity.custom["core_temp"], vec![0.0, 37.5, 37.5]);
+    }
+
+    #[test]
+    fn custom_fields_ignore_non_numeric_and_container_extensions() {
+        let gpx = r#"
+        <gpx>
+          <trk><trkseg>
+            <trkpt lat="1" lon="2">
+              <time>2026-01-01T00:00:00Z</time>
+              <extensions>
+                <wrapper><nested>5</nested></wrapper>
+                <ride_name>Morning loop</ride_name>
+              </extensions>
+            </trkpt>
+          </trkseg></trk>
+        </gpx>
+        "#;
+        let activity = Activity::parse_gpx(gpx).unwrap();
+        // `nested` is numeric and kept; `wrapper` closes on leftover text that
+        // is already cleared, and `ride_name` is not a number — neither becomes
+        // a metric.
+        assert_eq!(activity.custom.keys().collect::<Vec<_>>(), vec!["nested"]);
+    }
+
+    #[test]
+    fn custom_field_count_is_capped() {
+        // Two points carrying disjoint field sets, each already at the cap:
+        // the per-point limit alone would let the union reach twice it.
+        let fields = |prefix: &str| -> String {
+            (0..MAX_CUSTOM_FIELDS + 10)
+                .map(|i| format!("<{prefix}{i}>{i}</{prefix}{i}>"))
+                .collect()
+        };
+        let gpx = format!(
+            r#"<gpx><trk><trkseg>
+              <trkpt lat="1" lon="2">
+                <time>2026-01-01T00:00:00Z</time>
+                <extensions>{}</extensions>
+              </trkpt>
+              <trkpt lat="1" lon="2.001">
+                <time>2026-01-01T00:00:01Z</time>
+                <extensions>{}</extensions>
+              </trkpt>
+            </trkseg></trk></gpx>"#,
+            fields("a"),
+            fields("b"),
+        );
+        let activity = Activity::parse_gpx(&gpx).unwrap();
+        assert_eq!(activity.custom.len(), MAX_CUSTOM_FIELDS);
+        // Every surviving series is still full length, so nothing downstream
+        // can index past the end of one.
+        assert!(activity.custom.values().all(|s| s.len() == 2));
+    }
+
+    #[test]
+    fn captures_unmodelled_fit_record_fields_as_custom_metrics() {
+        use fitparser::profile::MesgNum;
+        use fitparser::{FitDataField, FitDataRecord, Value};
+
+        const FIELD_NUM_UNUSED: u8 = 0;
+        let mut rec = FitDataRecord::new(MesgNum::Record);
+        for (name, value, units) in [
+            ("position_lat", Value::SInt32(0), "semicircles"),
+            ("position_long", Value::SInt32(0), "semicircles"),
+            // Not in the profile this app models — a developer field written by
+            // a Connect IQ app reaches `fields()` exactly like this.
+            ("Lean Angle", Value::Float64(18.5), "degrees"),
+            // In the FIT profile, but not an attribute Cyclemetry models.
+            ("left_right_balance", Value::UInt8(52), "percent"),
+        ] {
+            rec.push(FitDataField::new(
+                name.into(),
+                FIELD_NUM_UNUSED,
+                value,
+                units.into(),
+            ));
+        }
+        let activity = Activity::from_fit_records(vec![rec]).unwrap();
+
+        assert_eq!(activity.get_scalar("custom:Lean Angle", 0), 18.5);
+        assert_eq!(activity.get_scalar("custom:left_right_balance", 0), 52.0);
+        // The modelled position fields stay out of the custom channel.
+        assert!(!activity.custom.contains_key("position_lat"));
+    }
+
+    #[test]
+    fn custom_series_survive_scene_resampling() {
+        let gpx = r#"
+        <gpx>
+          <trk><trkseg>
+            <trkpt lat="1" lon="2"><time>2026-01-01T00:00:00Z</time>
+              <extensions><g_force>0.0</g_force></extensions></trkpt>
+            <trkpt lat="1" lon="2.001"><time>2026-01-01T00:00:01Z</time>
+              <extensions><g_force>1.0</g_force></extensions></trkpt>
+            <trkpt lat="1" lon="2.002"><time>2026-01-01T00:00:02Z</time>
+              <extensions><g_force>2.0</g_force></extensions></trkpt>
+          </trkseg></trk>
+        </gpx>
+        "#;
+        let activity = Activity::parse_gpx(gpx).unwrap();
+        let sampled = activity
+            .sample_for_scene(&wall_clock_scene(0.0, 2.0, 2), false)
+            .unwrap();
+
+        let series = &sampled.custom["g_force"];
+        assert_eq!(series.len(), sampled.data_len());
+        // 2 fps over a 2s window: the frame grid lands on the half-seconds, and
+        // a continuous channel interpolates onto them.
+        assert_eq!(series[0], 0.0);
+        assert!((series[1] - 0.5).abs() < 1e-9);
+        assert!((series[2] - 1.0).abs() < 1e-9);
+        // Still addressable by token after the trim, and still plottable.
+        assert!((sampled.get_scalar("custom:g_force", 2) - 1.0).abs() < 1e-9);
+        let (x, y) = sampled.plot_data("custom:g_force", None);
+        assert_eq!(x.len(), series.len());
+        assert_eq!(y, *series);
     }
 
     #[test]

@@ -2236,6 +2236,59 @@ mod tests {
         );
     }
 
+    /// A custom source field (a GPX extension / FIT developer field, keyed by
+    /// whatever name the device wrote) drives a value readout, a plot and a
+    /// meter end-to-end. Custom fields have no unit table, so the value must
+    /// render its raw reading with the element's manual suffix.
+    #[test]
+    fn custom_metric_renders_end_to_end() {
+        use crate::activity::Activity;
+        use crate::template::Element;
+        use std::collections::BTreeMap;
+
+        let n = 120;
+        let mut activity = Activity::synthetic(n);
+        // A lateral g-force channel sweeping 0…2 g, the shape the issue asks for.
+        let series: Vec<f64> = (0..n).map(|i| 2.0 * i as f64 / (n - 1) as f64).collect();
+        activity.custom = BTreeMap::from([("g_force_lat".to_string(), series)]);
+        activity
+            .valid_attributes
+            .push("custom:g_force_lat".to_string());
+
+        let raw = serde_json::json!({
+            "scene": { "width": 400, "height": 200, "font": "rajdhani-bold.ttf" },
+            "elements": [
+                { "type": "value", "id": "v", "value": "custom:g_force_lat",
+                  "font_size": 48, "x": 10, "y": 60,
+                  "decimal_rounding": 2, "suffix_mode": "custom", "suffix": " G" },
+                { "type": "plot", "id": "p", "value": "custom:g_force_lat",
+                  "x": 10, "y": 80, "width": 380, "height": 60, "color": "#ff0000" },
+                { "type": "meter", "id": "m", "value": "custom:g_force_lat",
+                  "x": 10, "y": 150, "width": 380, "height": 20,
+                  "min": 0, "max": 2, "color": "#00ff00" }
+            ]
+        });
+        let t = Template::from_value(raw).unwrap();
+        let fonts_dir = concat!(env!("CARGO_MANIFEST_DIR"), "/../../resources/fonts");
+        let cache = super::SceneCache::build(&activity, &t, fonts_dir, &[]).unwrap();
+
+        // Last frame: the meter is near full and the readout reads ~2 g, so
+        // every element has something to draw.
+        let rgba = super::render_frame(n - 1, &cache, &activity, &t, None, None);
+        assert!(
+            rgba.chunks_exact(4).any(|px| px[3] != 0),
+            "custom metric elements rendered nothing"
+        );
+
+        // The value passes through with no unit conversion — a custom field has
+        // no unit table, so what the file recorded is what shows.
+        let cfg = match &t.elements[0] {
+            Element::Value(v) => v,
+            other => panic!("expected a value element, got {other:?}"),
+        };
+        assert_eq!(super::format_value(2.0, cfg, false), "2.00 G");
+    }
+
     /// End-to-end `color_by`: banded elevation fill, banded line plot, and a
     /// banded course line (with past/future split) render through
     /// SceneCache::build → render_frame, each producing several distinct band
