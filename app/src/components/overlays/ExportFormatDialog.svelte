@@ -55,8 +55,7 @@
   )
 
   // Shared column layout so the header cells and every row align.
-  const COLS =
-    'grid grid-cols-[1fr_6rem_5rem_4.5rem_5rem] items-center gap-2'
+  const COLS = 'grid grid-cols-[1fr_6rem_5rem_4.5rem_5rem] items-center gap-2'
 
   onMount(() => {
     window.addEventListener('keydown', onKeydown)
@@ -255,9 +254,9 @@
         />
         <p class="text-xs leading-snug text-zinc-300">
           This export needs roughly {formatFileSize(selectedBytes)}, but the
-          output disk has only {formatFileSize(diskFreeBytes)} free. You can
-          still start — the render pauses itself before the disk fills and
-          resumes automatically when you free up space.
+          output disk has only {formatFileSize(diskFreeBytes)} free. You can still
+          start — the render pauses itself before the disk fills and resumes automatically
+          when you free up space.
         </p>
       </div>
     {/if}

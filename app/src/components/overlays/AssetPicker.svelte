@@ -6,11 +6,7 @@
   import { listAssets, importAsset } from '../../api/backend.js'
   import { dialogExtensions } from '../../lib/utils.js'
 
-  let {
-    current = '',
-    onselect,
-    oncancel,
-  } = $props()
+  let { current = '', onselect, oncancel } = $props()
 
   let assets = $state([])
   let loading = $state(true)
@@ -33,7 +29,10 @@
   }
 
   function onKeydown(e) {
-    if (e.key === 'Escape') { e.preventDefault(); oncancel?.() }
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      oncancel?.()
+    }
   }
 
   async function upload() {
@@ -41,7 +40,10 @@
     const path = await openFileDialog({
       multiple: false,
       filters: [
-        { name: 'Images', extensions: dialogExtensions(['png', 'webp', 'svg']) },
+        {
+          name: 'Images',
+          extensions: dialogExtensions(['png', 'webp', 'svg']),
+        },
       ],
     })
     if (!path) return
@@ -63,19 +65,27 @@
   aria-label="Asset Library"
   tabindex="-1"
   class="fixed inset-0 z-[60] flex items-center justify-center pt-14"
-  onmousedown={(e) => { if (e.target === e.currentTarget) oncancel?.() }}
+  onmousedown={(e) => {
+    if (e.target === e.currentTarget) oncancel?.()
+  }}
 >
   <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
   <WindowDragStrip />
 
-  <div class="relative z-10 flex flex-col w-[520px] max-h-[72vh] rounded-[14px] border border-white/[0.08] bg-[var(--panel)] shadow-2xl">
-
+  <div
+    class="relative z-10 flex flex-col w-[520px] max-h-[72vh] rounded-[14px] border border-white/[0.08] bg-[var(--panel)] shadow-2xl"
+  >
     <!-- Header -->
-    <div class="flex items-center justify-between px-4 py-3 border-b border-zinc-800 shrink-0">
+    <div
+      class="flex items-center justify-between px-4 py-3 border-b border-zinc-800 shrink-0"
+    >
       <p class="text-sm font-semibold text-zinc-100">Asset Library</p>
       <div class="flex items-center gap-2">
         {#if uploadError}
-          <span class="text-[10px] text-red-400 max-w-[180px] truncate" title={uploadError}>{uploadError}</span>
+          <span
+            class="text-[10px] text-red-400 max-w-[180px] truncate"
+            title={uploadError}>{uploadError}</span
+          >
         {/if}
         <button
           onclick={upload}
@@ -106,7 +116,9 @@
       {:else if assets.length === 0}
         <div class="flex flex-col items-center justify-center py-12 gap-2">
           <p class="text-xs text-zinc-500">No assets yet.</p>
-          <p class="text-[10px] text-zinc-600">Click Import to add PNG, WebP, or SVG files.</p>
+          <p class="text-[10px] text-zinc-600">
+            Click Import to add PNG, WebP, or SVG files.
+          </p>
         </div>
       {:else}
         <div class="grid grid-cols-4 gap-2">
@@ -116,12 +128,15 @@
               onclick={() => onselect?.(asset.name)}
               title={asset.name}
               class={`relative flex flex-col items-center gap-1.5 p-2 rounded-[6px] border text-left transition-colors
-                ${isSelected
-                  ? 'border-primary/60 bg-primary/10'
-                  : 'border-zinc-800 bg-zinc-900/60 hover:border-zinc-600 hover:bg-zinc-800/60'}`}
+                ${
+                  isSelected
+                    ? 'border-primary/60 bg-primary/10'
+                    : 'border-zinc-800 bg-zinc-900/60 hover:border-zinc-600 hover:bg-zinc-800/60'
+                }`}
             >
               <!-- Thumbnail with checkerboard background -->
-              <div class="w-full aspect-square rounded flex items-center justify-center overflow-hidden"
+              <div
+                class="w-full aspect-square rounded flex items-center justify-center overflow-hidden"
                 style="background-image: linear-gradient(45deg,#2a2a2a 25%,transparent 25%),linear-gradient(-45deg,#2a2a2a 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#2a2a2a 75%),linear-gradient(-45deg,transparent 75%,#2a2a2a 75%);background-size:10px 10px;background-position:0 0,0 5px,5px -5px,-5px 0;background-color:#1a1a1a;"
               >
                 {#if asset.data_url}
@@ -134,11 +149,16 @@
               </div>
 
               <!-- Filename -->
-              <span class="w-full text-[9px] text-center truncate text-zinc-500 leading-tight">{asset.name}</span>
+              <span
+                class="w-full text-[9px] text-center truncate text-zinc-500 leading-tight"
+                >{asset.name}</span
+              >
 
               <!-- Selected checkmark -->
               {#if isSelected}
-                <div class="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-primary flex items-center justify-center">
+                <div
+                  class="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-primary flex items-center justify-center"
+                >
                   <Check size={9} class="text-white" strokeWidth={3} />
                 </div>
               {/if}
@@ -150,8 +170,9 @@
 
     <!-- Footer -->
     <div class="px-4 py-2.5 border-t border-zinc-800 shrink-0">
-      <p class="text-[10px] text-zinc-600">PNG, WebP, and SVG. Imported assets are saved to your local library.</p>
+      <p class="text-[10px] text-zinc-600">
+        PNG, WebP, and SVG. Imported assets are saved to your local library.
+      </p>
     </div>
-
   </div>
 </div>

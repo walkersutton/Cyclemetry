@@ -19,7 +19,9 @@
         status = 'available'
       } else if (!silent) {
         status = 'up_to_date'
-        setTimeout(() => { if (status === 'up_to_date') status = 'hidden' }, 3000)
+        setTimeout(() => {
+          if (status === 'up_to_date') status = 'hidden'
+        }, 3000)
       } else {
         status = 'hidden'
       }
@@ -59,7 +61,9 @@
   onMount(async () => {
     if (typeof window.__TAURI__ === 'undefined') return
 
-    const unlisten = await listen('check_for_updates', () => doCheck({ silent: false }))
+    const unlisten = await listen('check_for_updates', () =>
+      doCheck({ silent: false }),
+    )
 
     // Silent auto-check on startup — only show banner if update found
     if (!import.meta.env.DEV) {
@@ -76,42 +80,42 @@
     role="status"
   >
     {#if status === 'checking'}
-      <span class="h-1.5 w-1.5 rounded-full bg-zinc-600 shrink-0 animate-pulse"></span>
+      <span class="h-1.5 w-1.5 rounded-full bg-zinc-600 shrink-0 animate-pulse"
+      ></span>
       <span class="text-zinc-400">Checking for updates…</span>
-
     {:else if status === 'available'}
       <span class="h-1.5 w-1.5 rounded-full bg-[#22C55E] shrink-0"></span>
       <span class="text-zinc-300">v{update.version} available</span>
       <button
         onclick={handleInstall}
         class="ml-1 cursor-pointer font-medium text-[#22C55E] hover:text-white transition-colors duration-[150ms]"
-      >Update &amp; Restart</button>
+        >Update &amp; Restart</button
+      >
       <button
         onclick={() => (status = 'hidden')}
         class="ml-1 cursor-pointer text-zinc-600 hover:text-zinc-300 text-sm leading-none transition-colors duration-[150ms]"
-        aria-label="Dismiss"
-      >×</button>
-
+        aria-label="Dismiss">×</button
+      >
     {:else if status === 'downloading'}
-      <span class="h-1.5 w-1.5 rounded-full bg-[#F59E0B] shrink-0 animate-pulse"></span>
-      <span class="text-zinc-300">Downloading{progress > 0 ? ` ${progress}%` : '…'}</span>
-
+      <span class="h-1.5 w-1.5 rounded-full bg-[#F59E0B] shrink-0 animate-pulse"
+      ></span>
+      <span class="text-zinc-300"
+        >Downloading{progress > 0 ? ` ${progress}%` : '…'}</span
+      >
     {:else if status === 'done'}
       <span class="h-1.5 w-1.5 rounded-full bg-[#22C55E] shrink-0"></span>
       <span class="text-zinc-300">Restarting…</span>
-
     {:else if status === 'up_to_date'}
       <span class="h-1.5 w-1.5 rounded-full bg-zinc-600 shrink-0"></span>
       <span class="text-zinc-400">You're up to date</span>
-
     {:else if status === 'error'}
       <span class="h-1.5 w-1.5 rounded-full bg-[#EF4444] shrink-0"></span>
       <span class="text-zinc-400">Update check failed</span>
       <button
         onclick={() => (status = 'hidden')}
         class="ml-1 cursor-pointer text-zinc-600 hover:text-zinc-300 text-sm leading-none transition-colors duration-[150ms]"
-        aria-label="Dismiss"
-      >×</button>
+        aria-label="Dismiss">×</button
+      >
     {/if}
   </div>
 {/if}

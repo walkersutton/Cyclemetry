@@ -28,11 +28,17 @@
   tabindex="-1"
   class="fixed inset-0 z-50 flex items-center justify-center pt-14"
 >
-  <div role="presentation" class="absolute inset-0 bg-black/60 backdrop-blur-sm" onmousedown={onclose}></div>
+  <div
+    role="presentation"
+    class="absolute inset-0 bg-black/60 backdrop-blur-sm"
+    onmousedown={onclose}
+  ></div>
   <WindowDragStrip />
 
   <!-- Panel -->
-  <div class="relative z-10 w-72 rounded-xl border border-zinc-700 bg-zinc-900 shadow-2xl overflow-hidden">
+  <div
+    class="relative z-10 w-72 rounded-xl border border-zinc-700 bg-zinc-900 shadow-2xl overflow-hidden"
+  >
     <!-- Close -->
     <button
       onclick={onclose}
@@ -45,11 +51,17 @@
     <!-- Content -->
     <div class="flex flex-col items-center px-8 pt-10 pb-8 gap-3">
       <!-- Logo -->
-      <img src="/logo192.png" alt="Cyclemetry" class="w-20 h-20 rounded-2xl shadow-lg" />
+      <img
+        src="/logo192.png"
+        alt="Cyclemetry"
+        class="w-20 h-20 rounded-2xl shadow-lg"
+      />
 
       <!-- Name + version -->
       <div class="flex flex-col items-center gap-1 mt-1">
-        <h1 class="text-lg font-semibold tracking-tight text-zinc-50">Cyclemetry</h1>
+        <h1 class="text-lg font-semibold tracking-tight text-zinc-50">
+          Cyclemetry
+        </h1>
         {#if version}
           <span class="text-xs font-mono text-zinc-500">v{version}</span>
         {/if}
@@ -66,7 +78,8 @@
         <button
           onclick={() => open('https://github.com/walkersutton/cyclemetry')}
           class="text-[11px] text-zinc-500 font-mono hover:text-zinc-300 transition-colors cursor-pointer"
-        >github.com/walkersutton/cyclemetry</button>
+          >github.com/walkersutton/cyclemetry</button
+        >
       </div>
 
       <!-- Copyright -->

@@ -47,14 +47,20 @@
 </script>
 
 {#if app.renderingVideo && expanded}
-  <div class="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-950/90 backdrop-blur-md">
+  <div
+    class="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-950/90 backdrop-blur-md"
+  >
     <WindowDragStrip />
 
-    <div class="relative z-10 w-full max-w-sm rounded-xl border border-zinc-800 bg-zinc-900 p-8 shadow-2xl space-y-5">
+    <div
+      class="relative z-10 w-full max-w-sm rounded-xl border border-zinc-800 bg-zinc-900 p-8 shadow-2xl space-y-5"
+    >
       <!-- Icon -->
       <div class="flex flex-col items-center gap-3 text-center">
         {#if paused}
-          <div class="relative w-14 h-14 rounded-full bg-[var(--ds-warning)]/10 flex items-center justify-center">
+          <div
+            class="relative w-14 h-14 rounded-full bg-[var(--ds-warning)]/10 flex items-center justify-center"
+          >
             <CirclePause size={36} class="text-[var(--ds-warning)]" />
           </div>
           <div>
@@ -66,19 +72,44 @@
             </p>
           </div>
         {:else}
-          <div class="relative w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
-            <svg class="h-9 w-9 text-primary animate-spin absolute" viewBox="0 0 24 24" fill="none">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"/>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+          <div
+            class="relative w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center"
+          >
+            <svg
+              class="h-9 w-9 text-primary animate-spin absolute"
+              viewBox="0 0 24 24"
+              fill="none"
+            >
+              <circle
+                class="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                stroke-width="3"
+              />
+              <path
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+              />
             </svg>
-            <svg class="h-5 w-5 text-primary/50" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M4 2l16 10L4 22V2z"/>
+            <svg
+              class="h-5 w-5 text-primary/50"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path d="M4 2l16 10L4 22V2z" />
             </svg>
           </div>
           <div>
-            <h2 class="text-xl font-semibold">{finalizing ? 'Finalizing Video' : 'Generating Video'}</h2>
+            <h2 class="text-xl font-semibold">
+              {finalizing ? 'Finalizing Video' : 'Generating Video'}
+            </h2>
             <p class="text-sm text-zinc-400 mt-1">
-              {finalizing ? 'Encoding output file…' : `${formatTime(p.overlaySecondsRendered)} / ${formatTime(p.overlayTotalSeconds)} of overlay rendered`}
+              {finalizing
+                ? 'Encoding output file…'
+                : `${formatTime(p.overlaySecondsRendered)} / ${formatTime(p.overlayTotalSeconds)} of overlay rendered`}
             </p>
           </div>
         {/if}
@@ -86,13 +117,23 @@
 
       <!-- Export format details -->
       {#if format}
-        <div class="rounded-lg border border-zinc-800 bg-zinc-800/30 p-3 space-y-2">
+        <div
+          class="rounded-lg border border-zinc-800 bg-zinc-800/30 p-3 space-y-2"
+        >
           <div class="flex items-center justify-between gap-2">
-            <span class="text-sm font-medium text-zinc-200">{format.label}</span>
-            <span class="text-[11px] font-mono text-zinc-400 rounded border border-zinc-700 px-1.5 py-0.5">{format.container}</span>
+            <span class="text-sm font-medium text-zinc-200">{format.label}</span
+            >
+            <span
+              class="text-[11px] font-mono text-zinc-400 rounded border border-zinc-700 px-1.5 py-0.5"
+              >{format.container}</span
+            >
           </div>
-          <p class="text-xs text-zinc-500 leading-relaxed">{format.summary ?? format.desc}</p>
-          <div class="flex flex-wrap items-center gap-1.5 pt-0.5 text-[11px] font-mono text-zinc-400">
+          <p class="text-xs text-zinc-500 leading-relaxed">
+            {format.summary ?? format.desc}
+          </p>
+          <div
+            class="flex flex-wrap items-center gap-1.5 pt-0.5 text-[11px] font-mono text-zinc-400"
+          >
             <span>{app.outputWidth}×{app.outputHeight}</span>
             <span class="text-zinc-700">·</span>
             <span>{fps} fps</span>
@@ -105,21 +146,35 @@
       <!-- Progress bar -->
       <div>
         <div class="flex justify-between text-xs mb-1.5">
-          <span class="{paused ? 'text-[var(--ds-warning)]' : 'text-primary'} font-medium">{pct}%</span>
+          <span
+            class="{paused
+              ? 'text-[var(--ds-warning)]'
+              : 'text-primary'} font-medium">{pct}%</span
+          >
           {#if paused}
-            <span class="text-[var(--ds-warning)] font-mono">paused — low disk space</span>
+            <span class="text-[var(--ds-warning)] font-mono"
+              >paused — low disk space</span
+            >
           {:else if estimating}
-            <span class="text-zinc-400 font-mono inline-flex items-center gap-1">
-              <span class="h-2 w-2 rounded-full border border-zinc-400 border-t-transparent animate-spin"></span>
+            <span
+              class="text-zinc-400 font-mono inline-flex items-center gap-1"
+            >
+              <span
+                class="h-2 w-2 rounded-full border border-zinc-400 border-t-transparent animate-spin"
+              ></span>
               estimating…
             </span>
           {:else if !finalizing && p.estimatedSecondsRemaining != null}
-            <span class="text-zinc-400 font-mono">{formatTime(p.estimatedSecondsRemaining)} remaining</span>
+            <span class="text-zinc-400 font-mono"
+              >{formatTime(p.estimatedSecondsRemaining)} remaining</span
+            >
           {/if}
         </div>
         <div class="h-1.5 w-full rounded-full bg-zinc-800 overflow-hidden">
           <div
-            class="h-full {paused ? 'bg-[var(--ds-warning)]' : 'bg-primary'} rounded-full transition-all duration-300"
+            class="h-full {paused
+              ? 'bg-[var(--ds-warning)]'
+              : 'bg-primary'} rounded-full transition-all duration-300"
             style={`width: ${pct}%`}
           ></div>
         </div>
@@ -148,7 +203,9 @@
         </Button>
       </div>
 
-      <p class="text-xs text-center text-zinc-500 italic">Keep the app open during rendering</p>
+      <p class="text-xs text-center text-zinc-500 italic">
+        Keep the app open during rendering
+      </p>
     </div>
   </div>
 {/if}

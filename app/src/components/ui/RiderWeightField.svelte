@@ -46,8 +46,7 @@
       return
     }
     const entered = Number(raw)
-    const kg =
-      app.riderWeightUnit === 'lb' ? entered * 0.45359237 : entered
+    const kg = app.riderWeightUnit === 'lb' ? entered * 0.45359237 : entered
     if (!Number.isFinite(entered) || kg < MIN_KG || kg > MAX_KG) {
       error = `Enter a weight between ${bounds[0]} and ${bounds[1]} ${app.riderWeightUnit}.`
       return
@@ -96,7 +95,9 @@
       onkeydown={onKeydown}
       class="w-20 h-7 rounded-[6px] border-0 bg-[var(--panel2)] px-2 text-xs
              text-foreground font-mono focus:outline-none focus:ring-1
-             {error ? 'ring-1 ring-destructive focus:ring-destructive' : 'focus:ring-ring'}"
+             {error
+        ? 'ring-1 ring-destructive focus:ring-destructive'
+        : 'focus:ring-ring'}"
     />
     <div class="shrink-0 w-20">
       <Select

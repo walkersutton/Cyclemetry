@@ -33,7 +33,6 @@
     }
 
     window.addEventListener('resize', onResize)
-
     ;(async () => {
       try {
         communityList = await backend.fetchCommunityTemplates()
@@ -60,7 +59,7 @@
 
   // Community templates not yet installed
   let available = $derived(
-    communityList.filter((c) => !installed.some((i) => i.id === c.id))
+    communityList.filter((c) => !installed.some((i) => i.id === c.id)),
   )
   let communityIds = $derived(new Set(communityList.map((c) => c.id)))
 
@@ -195,10 +194,13 @@
   ></button>
   <WindowDragStrip />
 
-  <div class="relative z-10 flex w-[720px] max-h-[80vh] flex-col rounded-xl border border-zinc-700 bg-zinc-900 shadow-2xl">
-
+  <div
+    class="relative z-10 flex w-[720px] max-h-[80vh] flex-col rounded-xl border border-zinc-700 bg-zinc-900 shadow-2xl"
+  >
     <!-- Header -->
-    <div class="flex items-center justify-between px-5 py-4 border-b border-zinc-800 shrink-0">
+    <div
+      class="flex items-center justify-between px-5 py-4 border-b border-zinc-800 shrink-0"
+    >
       <h2 class="text-sm font-semibold text-zinc-100">Choose Template</h2>
       <div class="flex items-center gap-2">
         <button
@@ -230,11 +232,14 @@
     <!-- Scrollable body -->
     {#key viewportHeight}
       <div class="min-h-0 overflow-y-auto px-5 py-4 space-y-6">
-
         <!-- Installed templates -->
         {#if installed.length > 0}
           <div>
-            <p class="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 mb-3">Installed</p>
+            <p
+              class="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 mb-3"
+            >
+              Installed
+            </p>
             <div class="grid grid-cols-3 gap-3">
               {#each installed as tpl (tpl.id)}
                 {@const active = isActive(tpl.id)}
@@ -244,8 +249,8 @@
                 <div
                   class="rounded-lg border overflow-hidden transition-colors
                          {active
-                           ? 'border-primary bg-zinc-800'
-                           : 'border-zinc-700 bg-zinc-800/40 hover:border-zinc-500 hover:bg-zinc-800/80'}"
+                    ? 'border-primary bg-zinc-800'
+                    : 'border-zinc-700 bg-zinc-800/40 hover:border-zinc-500 hover:bg-zinc-800/80'}"
                 >
                   <!-- Preview (clickable) -->
                   <button
@@ -260,7 +265,9 @@
                         onerror={() => onImgError(tpl.id)}
                       />
                     {:else}
-                      <span class="text-[10px] text-zinc-600 font-mono">{tpl.id}</span>
+                      <span class="text-[10px] text-zinc-600 font-mono"
+                        >{tpl.id}</span
+                      >
                     {/if}
                   </button>
                   <!-- Info row -->
@@ -277,10 +284,15 @@
                           class="h-3.5 w-3.5 shrink-0 rounded-[3px]"
                         />
                       {/if}
-                      <span class="min-w-0 text-xs font-medium text-zinc-100 truncate block">{tpl.name}</span>
+                      <span
+                        class="min-w-0 text-xs font-medium text-zinc-100 truncate block"
+                        >{tpl.name}</span
+                      >
                     </button>
                     {#if label}
-                      <span class="shrink-0 text-[10px] text-zinc-500">{label}</span>
+                      <span class="shrink-0 text-[10px] text-zinc-500"
+                        >{label}</span
+                      >
                     {/if}
                     <button
                       onclick={() => handleDelete(tpl.id)}
@@ -303,12 +315,18 @@
 
         <!-- Community templates -->
         <div>
-          <p class="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 mb-3">Community</p>
+          <p
+            class="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 mb-3"
+          >
+            Community
+          </p>
 
           {#if communityLoading}
             <div class="grid grid-cols-3 gap-3">
               {#each [1, 2, 3, 4, 5, 6] as i (i)}
-                <div class="rounded-lg border border-zinc-800 bg-zinc-800/30 animate-pulse">
+                <div
+                  class="rounded-lg border border-zinc-800 bg-zinc-800/30 animate-pulse"
+                >
                   <div class="aspect-video bg-zinc-800/60"></div>
                   <div class="px-2.5 py-2 h-8"></div>
                 </div>
@@ -317,7 +335,9 @@
           {:else if communityError}
             <p class="text-xs text-red-400">{communityError}</p>
           {:else if available.length === 0}
-            <p class="text-xs text-zinc-500">All community templates are installed.</p>
+            <p class="text-xs text-zinc-500">
+              All community templates are installed.
+            </p>
           {:else}
             <div class="grid grid-cols-3 gap-3">
               {#each available as tpl (tpl.id)}
@@ -328,7 +348,9 @@
                   class="w-full rounded-lg border border-zinc-700 bg-zinc-800/40 overflow-hidden text-left cursor-pointer hover:border-zinc-500 hover:bg-zinc-800/80 transition-colors disabled:cursor-not-allowed"
                 >
                   <!-- Preview -->
-                  <div class="aspect-video bg-zinc-800 relative flex items-center justify-center overflow-hidden">
+                  <div
+                    class="aspect-video bg-zinc-800 relative flex items-center justify-center overflow-hidden"
+                  >
                     {#if tpl.preview_url && !previewFailed(tpl.id)}
                       <img
                         src={tpl.preview_url}
@@ -337,11 +359,17 @@
                         onerror={() => onImgError(tpl.id)}
                       />
                     {:else}
-                      <span class="text-[10px] text-zinc-600 font-mono">{tpl.id}</span>
+                      <span class="text-[10px] text-zinc-600 font-mono"
+                        >{tpl.id}</span
+                      >
                     {/if}
                     {#if busy}
-                      <div class="absolute inset-0 bg-black/50 flex items-center justify-center">
-                        <span class="text-[11px] text-zinc-300">Installing…</span>
+                      <div
+                        class="absolute inset-0 bg-black/50 flex items-center justify-center"
+                      >
+                        <span class="text-[11px] text-zinc-300"
+                          >Installing…</span
+                        >
                       </div>
                     {/if}
                   </div>
@@ -353,14 +381,16 @@
                       title="Cyclemetry template"
                       class="h-3.5 w-3.5 shrink-0 rounded-[3px]"
                     />
-                    <span class="min-w-0 text-xs font-medium text-zinc-100 truncate block">{tpl.name}</span>
+                    <span
+                      class="min-w-0 text-xs font-medium text-zinc-100 truncate block"
+                      >{tpl.name}</span
+                    >
                   </div>
                 </button>
               {/each}
             </div>
           {/if}
         </div>
-
       </div>
     {/key}
   </div>

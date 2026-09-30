@@ -51,15 +51,50 @@
   <!-- Progress ring -->
   <span class="relative grid h-4 w-4 place-items-center">
     <svg class="h-4 w-4 -rotate-90" viewBox="0 0 24 24">
-      <circle cx="12" cy="12" r={R} fill="none" stroke="currentColor" stroke-width="3" class={paused ? 'text-[var(--ds-warning)]/25' : 'text-primary/25'} />
+      <circle
+        cx="12"
+        cy="12"
+        r={R}
+        fill="none"
+        stroke="currentColor"
+        stroke-width="3"
+        class={paused ? 'text-[var(--ds-warning)]/25' : 'text-primary/25'}
+      />
       {#if finalizing}
-        <circle cx="12" cy="12" r={R} fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" class="text-primary origin-center animate-spin" stroke-dasharray={`${CIRC * 0.25} ${CIRC}`} />
+        <circle
+          cx="12"
+          cy="12"
+          r={R}
+          fill="none"
+          stroke="currentColor"
+          stroke-width="3"
+          stroke-linecap="round"
+          class="text-primary origin-center animate-spin"
+          stroke-dasharray={`${CIRC * 0.25} ${CIRC}`}
+        />
       {:else}
-        <circle cx="12" cy="12" r={R} fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" class="{paused ? 'text-[var(--ds-warning)]' : 'text-primary'} transition-all duration-300" stroke-dasharray={CIRC} stroke-dashoffset={dashOffset} />
+        <circle
+          cx="12"
+          cy="12"
+          r={R}
+          fill="none"
+          stroke="currentColor"
+          stroke-width="3"
+          stroke-linecap="round"
+          class="{paused
+            ? 'text-[var(--ds-warning)]'
+            : 'text-primary'} transition-all duration-300"
+          stroke-dasharray={CIRC}
+          stroke-dashoffset={dashOffset}
+        />
       {/if}
     </svg>
   </span>
   <span class="text-xs font-medium text-zinc-100 tabular-nums">
-    {paused ? 'Paused — low disk' : finalizing ? 'Finalizing…' : `Rendering ${pct}%`}
+    {paused
+      ? 'Paused — low disk'
+      : finalizing
+        ? 'Finalizing…'
+        : `Rendering ${pct}%`}
   </span>
 </button>

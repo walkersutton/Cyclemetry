@@ -14,11 +14,17 @@
 
   function show() {
     if (timer) clearTimeout(timer)
-    if (delay > 0) timer = setTimeout(() => { visible = true }, delay)
+    if (delay > 0)
+      timer = setTimeout(() => {
+        visible = true
+      }, delay)
     else visible = true
   }
   function hide() {
-    if (timer) { clearTimeout(timer); timer = null }
+    if (timer) {
+      clearTimeout(timer)
+      timer = null
+    }
     visible = false
   }
 </script>
@@ -42,10 +48,12 @@
         side === 'bottom' && 'top-full mt-1.5',
         side === 'left' && 'right-full top-1/2 -translate-y-1/2 mr-1.5',
         side === 'right' && 'left-full top-1/2 -translate-y-1/2 ml-1.5',
-        (side === 'top' || side === 'bottom') && align === 'center' && 'left-1/2 -translate-x-1/2',
+        (side === 'top' || side === 'bottom') &&
+          align === 'center' &&
+          'left-1/2 -translate-x-1/2',
         (side === 'top' || side === 'bottom') && align === 'start' && 'left-0',
         (side === 'top' || side === 'bottom') && align === 'end' && 'right-0',
-      )}
-    >{content}</span>
+      )}>{content}</span
+    >
   {/if}
 </span>

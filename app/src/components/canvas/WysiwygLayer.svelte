@@ -22,7 +22,13 @@
   // The SVG overlay must use that same space so measured element bounds line up;
   // config-derived fallbacks and drag write-back are converted between
   // authored ↔ render space via `authorScale`.
-  let { measuredElements = [], frameImage = null, zoom = 1, sceneWidth = 1920, sceneHeight = 1080 } = $props()
+  let {
+    measuredElements = [],
+    frameImage = null,
+    zoom = 1,
+    sceneWidth = 1920,
+    sceneHeight = 1080,
+  } = $props()
 
   let authoredHeight = $derived(app.config?.scene?.height ?? 1080)
   let authorScale = $derived(sceneHeight / (authoredHeight || sceneHeight))
@@ -68,7 +74,13 @@
     else if (el.text_align === 'right') x -= w
     const va = el.vertical_align
     const top =
-      va === 'top' ? y : va === 'middle' ? y - fs / 2 : va === 'bottom' ? y - fs : y - fs * 0.8
+      va === 'top'
+        ? y
+        : va === 'middle'
+          ? y - fs / 2
+          : va === 'bottom'
+            ? y - fs
+            : y - fs * 0.8
     return { x, y: top }
   }
 
@@ -83,11 +95,17 @@
 
   let elements = $derived.by(() => {
     if (!app.config?.elements) return []
-    const measured = new Map(measuredElements.map(e => [e.id, e]))
+    const measured = new Map(measuredElements.map((e) => [e.id, e]))
     const s = authorScale
     // Config-derived fallback bounds are in authored coords; the rendered
     // image (and measured bounds) are in output coords — scale to match.
-    const fb = (o) => ({ id: o.id, x: o.x * s, y: o.y * s, w: o.w * s, h: o.h * s })
+    const fb = (o) => ({
+      id: o.id,
+      x: o.x * s,
+      y: o.y * s,
+      w: o.w * s,
+      h: o.h * s,
+    })
     const byId = {}
 
     // Pick the best bounds source for a given element:
@@ -103,7 +121,8 @@
       if (dragOffsets.has(id)) {
         const { dx, dy } = dragOffsets.get(id)
         const base = stickyMeasured.get(id)
-        if (base) return { id, x: base.x + dx, y: base.y + dy, w: base.w, h: base.h }
+        if (base)
+          return { id, x: base.x + dx, y: base.y + dy, w: base.w, h: base.h }
         return null
       }
       return measured.get(id) ?? stickyMeasured.get(id) ?? null
@@ -116,28 +135,44 @@
         const text = el.text ?? 'LABEL'
         const charCount = Array.from(text).length
         const letterSpacing = el.letter_spacing ?? 0
-        const w = Math.max(charCount * fs * 0.58 + Math.max(charCount - 1, 0) * letterSpacing, fs)
-        byId[id] = boundsFor(id) ?? fb({ id, ...textFallbackXY(el, fs, w), w, h: fs })
+        const w = Math.max(
+          charCount * fs * 0.58 + Math.max(charCount - 1, 0) * letterSpacing,
+          fs,
+        )
+        byId[id] =
+          boundsFor(id) ?? fb({ id, ...textFallbackXY(el, fs, w), w, h: fs })
       } else if (el.type === 'value') {
         const fs = el.font_size ?? 48
         // ~3.5 chars at 0.58em average — covers typical metric values like
         // "120", "25.4", "1:42". Real bounds replace this on the next frame.
-        byId[id] = boundsFor(id) ?? fb({ id, ...textFallbackXY(el, fs, fs * 2), w: fs * 2, h: fs })
-      } else if (el.type === 'plot' || el.type === 'meter' || el.type === 'gauge') {
-        byId[id] = boundsFor(id) ?? fb({
-          id,
-          x: el.x ?? 50, y: el.y ?? 400,
-          w: el.width ?? 400,
-          h: el.height ?? 150,
-        })
+        byId[id] =
+          boundsFor(id) ??
+          fb({ id, ...textFallbackXY(el, fs, fs * 2), w: fs * 2, h: fs })
+      } else if (
+        el.type === 'plot' ||
+        el.type === 'meter' ||
+        el.type === 'gauge'
+      ) {
+        byId[id] =
+          boundsFor(id) ??
+          fb({
+            id,
+            x: el.x ?? 50,
+            y: el.y ?? 400,
+            w: el.width ?? 400,
+            h: el.height ?? 150,
+          })
       } else if (el.type === 'rect' || el.type === 'image') {
         const ax = anchoredXY(el)
-        byId[id] = boundsFor(id) ?? fb({
-          id,
-          x: ax?.x ?? el.x ?? 100, y: ax?.y ?? el.y ?? 100,
-          w: el.width ?? 300,
-          h: el.height ?? 200,
-        })
+        byId[id] =
+          boundsFor(id) ??
+          fb({
+            id,
+            x: ax?.x ?? el.x ?? 100,
+            y: ax?.y ?? el.y ?? 100,
+            w: el.width ?? 300,
+            h: el.height ?? 200,
+          })
       }
     }
     return [...(app.elementLayerOrder ?? [])]
@@ -177,7 +212,8 @@
   // line when within threshold. Single-element drags only (groups pass through).
   function snapDelta(id, dx, dy) {
     if (isGroupDrag(id)) return { dx, dy, guides: [] }
-    const base = dragBase?.baseElements.get(id) ?? elements.find((e) => e.id === id)
+    const base =
+      dragBase?.baseElements.get(id) ?? elements.find((e) => e.id === id)
     if (!base) return { dx, dy, guides: [] }
     const tx = sceneWidth / 2
     const ty = sceneHeight / 2
@@ -216,7 +252,13 @@
     if (el.anchor?.target) {
       // Anchored elements derive x/y from their target — shift the offset.
       const a = el.anchor
-      updates = { anchor: { ...a, offset_x: Math.round((a.offset_x ?? 0) + ddx), offset_y: Math.round((a.offset_y ?? 0) + ddy) } }
+      updates = {
+        anchor: {
+          ...a,
+          offset_x: Math.round((a.offset_x ?? 0) + ddx),
+          offset_y: Math.round((a.offset_y ?? 0) + ddy),
+        },
+      }
     } else {
       updates = {}
       if (wantH) updates.x = Math.round((el.x ?? 0) + ddx)
@@ -273,11 +315,14 @@
     })
   })
 
-  let draggingIds = $derived(dragBase ? new Set([...dragBase.positions.keys()]) : new Set())
+  let draggingIds = $derived(
+    dragBase ? new Set([...dragBase.positions.keys()]) : new Set(),
+  )
 
   function getRotation(id) {
     const el = elById(id)
-    if (!el || !['plot', 'meter', 'gauge', 'rect', 'image'].includes(el.type)) return 0
+    if (!el || !['plot', 'meter', 'gauge', 'rect', 'image'].includes(el.type))
+      return 0
     return el.rotation ?? 0
   }
 
@@ -293,7 +338,8 @@
   function handleRotateEnd(id, degrees) {
     liveRotation = null
     const el = elById(id)
-    if (!el || !['plot', 'meter', 'gauge', 'rect', 'image'].includes(el.type)) return
+    if (!el || !['plot', 'meter', 'gauge', 'rect', 'image'].includes(el.type))
+      return
     app.updateElement(id, { rotation: Math.round(degrees) })
   }
 
@@ -323,11 +369,20 @@
       if (!item || item.locked) continue
       positions.set(sid, {
         id: sid,
-        x: item.x ?? 0, y: item.y ?? 0,
-        ox: item.anchor?.offset_x ?? 0, oy: item.anchor?.offset_y ?? 0,
+        x: item.x ?? 0,
+        y: item.y ?? 0,
+        ox: item.anchor?.offset_x ?? 0,
+        oy: item.anchor?.offset_y ?? 0,
       })
-      const elData = elements.find(e => e.id === sid)
-      if (elData) baseElements.set(sid, { id: sid, x: elData.x, y: elData.y, w: elData.w, h: elData.h })
+      const elData = elements.find((e) => e.id === sid)
+      if (elData)
+        baseElements.set(sid, {
+          id: sid,
+          x: elData.x,
+          y: elData.y,
+          w: elData.w,
+          h: elData.h,
+        })
     }
     // Elements anchored (directly or via a chain) to anything being dragged
     // ride along visually — Rust re-derives their position on the commit
@@ -341,12 +396,24 @@
         if (!target || positions.has(el.id) || followerIds.has(el.id)) continue
         if (!positions.has(target) && !followerIds.has(target)) continue
         followerIds.add(el.id)
-        const elData = elements.find(e => e.id === el.id)
-        if (elData) baseElements.set(el.id, { id: el.id, x: elData.x, y: elData.y, w: elData.w, h: elData.h })
+        const elData = elements.find((e) => e.id === el.id)
+        if (elData)
+          baseElements.set(el.id, {
+            id: el.id,
+            x: elData.x,
+            y: elData.y,
+            w: elData.w,
+            h: elData.h,
+          })
         grew = true
       }
     }
-    dragBase = { preDragConfig: JSON.stringify(app.config), positions, baseElements, followerIds }
+    dragBase = {
+      preDragConfig: JSON.stringify(app.config),
+      positions,
+      baseElements,
+      followerIds,
+    }
     buildDragSnaps([...baseElements.keys()])
   }
 
@@ -362,10 +429,9 @@
       const el = elById(id)
       // Outside-stroke borders extend beyond element bounds by border_width px;
       // use a pad large enough to capture the full border.
-      const hasBorder = (el?.type === 'rect' || el?.type === 'meter') && el.border_color
-      const pad = hasBorder
-        ? Math.max(2, (el.border_width ?? 2) + 2)
-        : 2
+      const hasBorder =
+        (el?.type === 'rect' || el?.type === 'meter') && el.border_color
+      const pad = hasBorder ? Math.max(2, (el.border_width ?? 2) + 2) : 2
       const sx = Math.max(0, Math.floor(b.x - pad))
       const sy = Math.max(0, Math.floor(b.y - pad))
       const sw = Math.min(sceneWidth - sx, Math.ceil(b.w + pad * 2))
@@ -374,7 +440,10 @@
       const prev = dragSnaps.get(id)
       dragSnaps.set(id, {
         url: frameImage,
-        sx, sy, sw, sh,
+        sx,
+        sy,
+        sw,
+        sh,
         baseX: sx,
         baseY: sy,
         x: prev?.x ?? sx,
@@ -407,7 +476,11 @@
       const oy = base?.oy ?? item.anchor.offset_y ?? 0
       return {
         id,
-        anchor: { ...item.anchor, offset_x: Math.round(ox + dx / s), offset_y: Math.round(oy + dy / s) },
+        anchor: {
+          ...item.anchor,
+          offset_x: Math.round(ox + dx / s),
+          offset_y: Math.round(oy + dy / s),
+        },
       }
     }
     if (base) return { id, x: base.x + dx / s, y: base.y + dy / s }
@@ -438,13 +511,14 @@
     leaderSnap = { dx: 0, dy: 0 }
     const ids = isGroupDrag(id) ? [...selectedSet] : [id]
     const idSet = new Set(ids)
-    const moves = ids.map(sid => moveFor(sid, dx, dy, idSet)).filter(Boolean)
+    const moves = ids.map((sid) => moveFor(sid, dx, dy, idSet)).filter(Boolean)
 
     // Record the drag offset so boundsFor can return stickyMeasured+offset
     // (precise shape at new position) instead of the approximate config
     // fallback. Followers and write-skipped anchored members moved too.
     for (const m of moves) dragOffsets.set(m.id, { dx, dy })
-    for (const sid of dragBase?.followerIds ?? []) dragOffsets.set(sid, { dx, dy })
+    for (const sid of dragBase?.followerIds ?? [])
+      dragOffsets.set(sid, { dx, dy })
     for (const sid of ids) {
       const target = elById(sid)?.anchor?.target
       if (target && idSet.has(target)) dragOffsets.set(sid, { dx, dy })
@@ -463,9 +537,14 @@
       // The leader's own handle already applies the raw delta — add just the
       // snap correction so its box tracks the snapped (floated) pixels.
       if (liveGroup.leaderId === id) return leaderSnap
-      if (selectedSet.size > 1 && selectedSet.has(id) && selectedSet.has(liveGroup.leaderId))
+      if (
+        selectedSet.size > 1 &&
+        selectedSet.has(id) &&
+        selectedSet.has(liveGroup.leaderId)
+      )
         return { dx: liveGroup.dx, dy: liveGroup.dy }
-      if (dragBase?.followerIds?.has(id)) return { dx: liveGroup.dx, dy: liveGroup.dy }
+      if (dragBase?.followerIds?.has(id))
+        return { dx: liveGroup.dx, dy: liveGroup.dy }
     }
     return { dx: 0, dy: 0 }
   }
@@ -475,7 +554,18 @@
   // original authored dimensions, not intermediate live-updated values.
   let resizeBase = $state(null) // { preConfig, id, origX, origY, origW, origH }
 
-  function applyResizeDelta(origX, origY, origW, origH, corner, dx, dy, shiftKey, naturalW = null, naturalH = null) {
+  function applyResizeDelta(
+    origX,
+    origY,
+    origW,
+    origH,
+    corner,
+    dx,
+    dy,
+    shiftKey,
+    naturalW = null,
+    naturalH = null,
+  ) {
     const s = authorScale || 1
     // dx/dy are in output px; element coords are authored → undo the scale.
     const adx = dx / s
@@ -484,11 +574,25 @@
     // Raw dimension change per corner (positive = larger)
     let dw, dh
     switch (corner) {
-      case 'br': dw =  adx; dh =  ady; break
-      case 'bl': dw = -adx; dh =  ady; break
-      case 'tr': dw =  adx; dh = -ady; break
-      case 'tl': dw = -adx; dh = -ady; break
-      default:   dw =  adx; dh =  ady
+      case 'br':
+        dw = adx
+        dh = ady
+        break
+      case 'bl':
+        dw = -adx
+        dh = ady
+        break
+      case 'tr':
+        dw = adx
+        dh = -ady
+        break
+      case 'tl':
+        dw = -adx
+        dh = -ady
+        break
+      default:
+        dw = adx
+        dh = ady
     }
 
     let newW = origW + dw
@@ -511,18 +615,27 @@
     newH = Math.max(newH, 4)
 
     // Compute x/y: the corner opposite to the dragged one is fixed.
-    let newX = origX, newY = origY
+    let newX = origX,
+      newY = origY
     switch (corner) {
-      case 'br': /* top-left fixed — x/y unchanged */                         break
-      case 'bl': newX = origX + origW - newW;                                 break
-      case 'tr':                               newY = origY + origH - newH;   break
-      case 'tl': newX = origX + origW - newW; newY = origY + origH - newH;   break
+      case 'br':
+        /* top-left fixed — x/y unchanged */ break
+      case 'bl':
+        newX = origX + origW - newW
+        break
+      case 'tr':
+        newY = origY + origH - newH
+        break
+      case 'tl':
+        newX = origX + origW - newW
+        newY = origY + origH - newH
+        break
     }
 
     return {
       x: Math.round(newX),
       y: Math.round(newY),
-      width:  Math.round(newW),
+      width: Math.round(newW),
       height: Math.round(newH),
     }
   }
@@ -544,22 +657,50 @@
     }
     const { origX, origY, origW, origH, naturalW, naturalH } = resizeBase
     const lockAspect = shiftKey || elById(id)?.type === 'image'
-    const updates = applyResizeDelta(origX, origY, origW, origH, corner, dx, dy, lockAspect, naturalW, naturalH)
+    const updates = applyResizeDelta(
+      origX,
+      origY,
+      origW,
+      origH,
+      corner,
+      dx,
+      dy,
+      lockAspect,
+      naturalW,
+      naturalH,
+    )
     // Store live bounds locally — do NOT write to config until release.
     // This keeps the reactive cascade (ElementProperties, CenterCanvas debounce,
     // etc.) from firing on every pointer move.
     const s = authorScale || 1
     liveResize = {
       id,
-      bounds: { x: updates.x * s, y: updates.y * s, w: updates.width * s, h: updates.height * s },
+      bounds: {
+        x: updates.x * s,
+        y: updates.y * s,
+        w: updates.width * s,
+        h: updates.height * s,
+      },
     }
   }
 
   function handleResizeEnd(id, corner, dx, dy, shiftKey) {
     if (!resizeBase) return
-    const { preConfig, origX, origY, origW, origH, naturalW, naturalH } = resizeBase
+    const { preConfig, origX, origY, origW, origH, naturalW, naturalH } =
+      resizeBase
     const lockAspect = shiftKey || elById(id)?.type === 'image'
-    const updates = applyResizeDelta(origX, origY, origW, origH, corner, dx, dy, lockAspect, naturalW, naturalH)
+    const updates = applyResizeDelta(
+      origX,
+      origY,
+      origW,
+      origH,
+      corner,
+      dx,
+      dy,
+      lockAspect,
+      naturalW,
+      naturalH,
+    )
     app.commitElementUpdate(preConfig, id, updates)
     resizeBase = null
     liveResize = null
@@ -642,88 +783,117 @@
 </script>
 
 {#if app.config}
-<svg
-  viewBox={`0 0 ${sceneWidth} ${sceneHeight}`}
-  style="position:absolute; inset:0; width:100%; height:100%; overflow:visible; pointer-events:none"
-  xmlns="http://www.w3.org/2000/svg"
->
-  <!-- Background: drag to marquee-select, click to deselect.
+  <svg
+    viewBox={`0 0 ${sceneWidth} ${sceneHeight}`}
+    style="position:absolute; inset:0; width:100%; height:100%; overflow:visible; pointer-events:none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <!-- Background: drag to marquee-select, click to deselect.
        FIRST so handles paint on top -->
-  <rect
-    role="presentation"
-    x={0} y={0}
-    width={sceneWidth} height={sceneHeight}
-    fill="transparent"
-    style="pointer-events:all; cursor:crosshair"
-    onpointerdown={bgPointerDown}
-    onpointermove={bgPointerMove}
-    onpointerup={bgPointerUp}
-    onkeydown={(e) => { if (e.key === 'Escape') app.selectedElementId = null }}
-  />
+    <rect
+      role="presentation"
+      x={0}
+      y={0}
+      width={sceneWidth}
+      height={sceneHeight}
+      fill="transparent"
+      style="pointer-events:all; cursor:crosshair"
+      onpointerdown={bgPointerDown}
+      onpointermove={bgPointerMove}
+      onpointerup={bgPointerUp}
+      onkeydown={(e) => {
+        if (e.key === 'Escape') app.selectedElementId = null
+      }}
+    />
 
-  <!-- Cropped real pixels of the dragged element(s), under the handle boxes
+    <!-- Cropped real pixels of the dragged element(s), under the handle boxes
        so the border/handles stay on top. Nested SVG viewBox clips the full
        frame image to the element region without re-encoding, preserving
        semi-transparent pixels correctly. -->
-  {#each [...dragSnaps] as [sid, s] (sid)}
-    <svg
-      x={s.x}
-      y={s.y}
-      width={s.w}
-      height={s.h}
-      viewBox="{s.sx} {s.sy} {s.sw} {s.sh}"
-      overflow="hidden"
-      style="pointer-events:none"
-    >
-      <image
-        href={s.url}
-        x="0"
-        y="0"
-        width={sceneWidth}
-        height={sceneHeight}
-        preserveAspectRatio="none"
+    {#each [...dragSnaps] as [sid, s] (sid)}
+      <svg
+        x={s.x}
+        y={s.y}
+        width={s.w}
+        height={s.h}
+        viewBox="{s.sx} {s.sy} {s.sw} {s.sh}"
+        overflow="hidden"
         style="pointer-events:none"
+      >
+        <image
+          href={s.url}
+          x="0"
+          y="0"
+          width={sceneWidth}
+          height={sceneHeight}
+          preserveAspectRatio="none"
+          style="pointer-events:none"
+        />
+      </svg>
+    {/each}
+
+    {#each elements as el (el.id)}
+      <ElementHandle
+        id={el.id}
+        bounds={{ x: el.x, y: el.y, w: el.w, h: el.h }}
+        label={handleLabel(el.id)}
+        selected={selectedSet.has(el.id)}
+        rotation={rotationFor(el.id)}
+        groupOffset={groupOffsetFor(el.id)}
+        {zoom}
+        resizable={['rect', 'meter', 'gauge', 'plot', 'image'].includes(
+          elById(el.id)?.type,
+        )}
+        locked={elById(el.id)?.locked === true}
+        onselect={(e) => handleSelect(el.id, e)}
+        ondrag={(dx, dy) => handleDrag(el.id, dx, dy)}
+        ondragend={(dx, dy) => handleDragEnd(el.id, dx, dy)}
+        onrotate={(deg) => handleRotate(el.id, deg)}
+        onrotateend={(deg) => handleRotateEnd(el.id, deg)}
+        onresize={(corner, dx, dy, shift) =>
+          handleResize(el.id, corner, dx, dy, shift)}
+        onresizeend={(corner, dx, dy, shift) =>
+          handleResizeEnd(el.id, corner, dx, dy, shift)}
       />
-    </svg>
-  {/each}
+    {/each}
 
-  {#each elements as el (el.id)}
-    <ElementHandle
-      id={el.id}
-      bounds={{ x: el.x, y: el.y, w: el.w, h: el.h }}
-      label={handleLabel(el.id)}
-      selected={selectedSet.has(el.id)}
-      rotation={rotationFor(el.id)}
-      groupOffset={groupOffsetFor(el.id)}
-      {zoom}
-      resizable={['rect', 'meter', 'gauge', 'plot', 'image'].includes(elById(el.id)?.type)}
-      locked={elById(el.id)?.locked === true}
-      onselect={(e) => handleSelect(el.id, e)}
-      ondrag={(dx, dy) => handleDrag(el.id, dx, dy)}
-      ondragend={(dx, dy) => handleDragEnd(el.id, dx, dy)}
-      onrotate={(deg) => handleRotate(el.id, deg)}
-      onrotateend={(deg) => handleRotateEnd(el.id, deg)}
-      onresize={(corner, dx, dy, shift) => handleResize(el.id, corner, dx, dy, shift)}
-      onresizeend={(corner, dx, dy, shift) => handleResizeEnd(el.id, corner, dx, dy, shift)}
-    />
-  {/each}
+    <!-- Center snap guides — crimson line on the axis the element is centered on -->
+    {#each activeGuides as g (g.axis)}
+      {#if g.axis === 'v'}
+        <line
+          x1={g.pos}
+          y1={0}
+          x2={g.pos}
+          y2={sceneHeight}
+          stroke="#dc143c"
+          stroke-width="1"
+          vector-effect="non-scaling-stroke"
+          style="pointer-events:none"
+        />
+      {:else}
+        <line
+          x1={0}
+          y1={g.pos}
+          x2={sceneWidth}
+          y2={g.pos}
+          stroke="#dc143c"
+          stroke-width="1"
+          vector-effect="non-scaling-stroke"
+          style="pointer-events:none"
+        />
+      {/if}
+    {/each}
 
-  <!-- Center snap guides — crimson line on the axis the element is centered on -->
-  {#each activeGuides as g (g.axis)}
-    {#if g.axis === 'v'}
-      <line x1={g.pos} y1={0} x2={g.pos} y2={sceneHeight} stroke="#dc143c" stroke-width="1" vector-effect="non-scaling-stroke" style="pointer-events:none" />
-    {:else}
-      <line x1={0} y1={g.pos} x2={sceneWidth} y2={g.pos} stroke="#dc143c" stroke-width="1" vector-effect="non-scaling-stroke" style="pointer-events:none" />
+    {#if marquee && (marquee.w > 0 || marquee.h > 0)}
+      <rect
+        x={marquee.x}
+        y={marquee.y}
+        width={marquee.w}
+        height={marquee.h}
+        stroke-width="1"
+        stroke-dasharray="4 3"
+        style="pointer-events:none; fill: rgb(var(--primary-rgb) / 0.12); stroke: var(--primary)"
+      />
     {/if}
-  {/each}
-
-  {#if marquee && (marquee.w > 0 || marquee.h > 0)}
-    <rect
-      x={marquee.x} y={marquee.y}
-      width={marquee.w} height={marquee.h}
-      stroke-width="1" stroke-dasharray="4 3"
-      style="pointer-events:none; fill: rgb(var(--primary-rgb) / 0.12); stroke: var(--primary)"
-    />
-  {/if}
-</svg>
+  </svg>
 {/if}

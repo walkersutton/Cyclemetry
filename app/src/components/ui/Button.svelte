@@ -13,10 +13,14 @@
   } = $props()
 
   const variants = {
-    default: 'bg-primary text-primary-foreground hover:bg-[var(--accent-hover)]',
-    outline: 'bg-[var(--panel2)] hover:bg-[var(--panel3)] text-muted-foreground hover:text-foreground',
-    ghost: 'hover:bg-[var(--panel2)] text-muted-foreground hover:text-foreground',
-    destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
+    default:
+      'bg-primary text-primary-foreground hover:bg-[var(--accent-hover)]',
+    outline:
+      'bg-[var(--panel2)] hover:bg-[var(--panel3)] text-muted-foreground hover:text-foreground',
+    ghost:
+      'hover:bg-[var(--panel2)] text-muted-foreground hover:text-foreground',
+    destructive:
+      'bg-destructive text-destructive-foreground hover:bg-destructive/90',
   }
   const sizes = {
     default: 'h-9 px-4 py-2 text-sm',

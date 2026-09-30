@@ -97,7 +97,11 @@
       ? 'border-[var(--ds-warning)]/30 bg-[var(--ds-warning)]/10'
       : 'border-[var(--ds-success)]/30 bg-[var(--ds-success)]/10'}"
   >
-    <div class="flex {compact ? 'min-w-0 flex-1 items-center' : 'items-start'} gap-2.5">
+    <div
+      class="flex {compact
+        ? 'min-w-0 flex-1 items-center'
+        : 'items-start'} gap-2.5"
+    >
       {#if needed}
         <TriangleAlert
           size={14}

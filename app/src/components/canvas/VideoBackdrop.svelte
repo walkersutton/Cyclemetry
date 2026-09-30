@@ -130,7 +130,9 @@
   ></video>
 {/if}
 {#if videoError}
-  <div class="absolute bottom-2 left-2 right-2 rounded bg-zinc-900/95 px-3 py-2 text-[11px] text-red-400 leading-snug whitespace-pre-line pointer-events-none">
+  <div
+    class="absolute bottom-2 left-2 right-2 rounded bg-zinc-900/95 px-3 py-2 text-[11px] text-red-400 leading-snug whitespace-pre-line pointer-events-none"
+  >
     {videoError}
   </div>
 {/if}

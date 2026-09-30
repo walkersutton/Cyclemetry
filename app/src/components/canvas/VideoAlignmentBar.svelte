@@ -41,12 +41,8 @@
   let videoStartRel = $derived(videoStartAbs - sceneStart)
   let videoEndRel = $derived(videoEndAbs - sceneStart)
 
-  let leftPct = $derived(
-    Math.max(0, (videoStartRel / overlayDuration) * 100),
-  )
-  let rightPct = $derived(
-    Math.min(100, (videoEndRel / overlayDuration) * 100),
-  )
+  let leftPct = $derived(Math.max(0, (videoStartRel / overlayDuration) * 100))
+  let rightPct = $derived(Math.min(100, (videoEndRel / overlayDuration) * 100))
   let widthPct = $derived(Math.max(0, rightPct - leftPct))
   let overflowLeft = $derived(videoStartRel < 0)
   let overflowRight = $derived(videoEndRel > overlayDuration)
@@ -143,7 +139,9 @@
       onpointerup={endDrag}
       onpointercancel={endDrag}
     >
-      <div class="absolute inset-x-0 top-2 h-1 rounded-full bg-[var(--panel3)]"></div>
+      <div
+        class="absolute inset-x-0 top-2 h-1 rounded-full bg-[var(--panel3)]"
+      ></div>
       {#if widthPct > 0}
         <button
           type="button"
