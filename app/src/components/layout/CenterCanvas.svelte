@@ -210,6 +210,7 @@
     const _hasActivity = app.hasActivity
     void app.gpxFilename // reactive dep: re-run when GPX changes
     void app.units // reactive dep: the unit-system preference flips readouts
+    void app.compactUnits // reactive dep: the km/h↔kmh style flips readouts
     void previewW // reactive dep: re-render when the base target size changes
     void previewH // (export resolution, preview box size, or display pixel ratio)
 

@@ -74,6 +74,17 @@
           ]}
           onchange={(v) => (app.units = v)}
         />
+        <p class="text-[11px] text-zinc-500">
+          Speed unit style — how compound speed units are written.
+        </p>
+        <Select
+          value={app.compactUnits ? 'compact' : 'slash'}
+          options={[
+            { value: 'slash', label: 'km/h' },
+            { value: 'compact', label: 'kmh' },
+          ]}
+          onchange={(v) => (app.compactUnits = v === 'compact')}
+        />
       </div>
 
       <!-- Rider weight — powers the W/kg metric. Stored on this device only and

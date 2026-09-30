@@ -138,6 +138,13 @@ export function createAppState() {
     localStorage.getItem('units') ??
       (_persisted?.scene?.units === 'imperial' ? 'imperial' : 'metric'),
   )
+  // Compound-unit style for compound speed units: false → "km/h" (default),
+  // true → "kmh". App-level like `units`: stored on this device, injected into
+  // scene.compact_units at render, never saved into the template.
+  let compactUnits = $state(
+    (localStorage.getItem('compactUnits') ??
+      String(_persisted?.scene?.compact_units === true)) === 'true',
+  )
   let outputDir = $state(localStorage.getItem('outputDir') ?? null)
   let defaultOutputDir = $state(null)
   let outputWidth = $state(
@@ -249,6 +256,9 @@ export function createAppState() {
   })
   $effect(() => {
     localStorage.setItem('units', units)
+  })
+  $effect(() => {
+    localStorage.setItem('compactUnits', String(compactUnits))
   })
   $effect(() => {
     localStorage.setItem('outputWidth', String(outputWidth))
@@ -657,7 +667,9 @@ export function createAppState() {
   // to every element left on Auto; rider weight rides as a separate render
   // argument (riderWeightKg).
   function withAppSettings(cfg) {
-    return cfg ? { ...cfg, scene: { ...cfg.scene, units } } : cfg
+    return cfg
+      ? { ...cfg, scene: { ...cfg.scene, units, compact_units: compactUnits } }
+      : cfg
   }
 
   function updateScene(updates) {
@@ -854,11 +866,16 @@ export function createAppState() {
       return base
     })
 
-    // units moved to an app-level preference (see `units` state) — strip the
-    // legacy scene field so it never rides in saved templates again.
+    // units and compact_units moved to app-level preferences (see `units` /
+    // `compactUnits` state) — strip the scene fields so they never ride in
+    // saved templates again.
     const sceneBase = Object.fromEntries(
       Object.entries(config.scene ?? {}).filter(
-        ([k]) => k !== 'editor' && k !== 'groups' && k !== 'units',
+        ([k]) =>
+          k !== 'editor' &&
+          k !== 'groups' &&
+          k !== 'units' &&
+          k !== 'compact_units',
       ),
     )
     return { ...config, scene: { ...sceneBase, groups }, elements }
@@ -1502,6 +1519,14 @@ export function createAppState() {
     },
     set units(v) {
       units = v === 'imperial' ? 'imperial' : 'metric'
+    },
+    // Compact compound-unit style ("km/h" vs "kmh"); app-level, injected into
+    // scene.compact_units, never saved to templates.
+    get compactUnits() {
+      return compactUnits
+    },
+    set compactUnits(v) {
+      compactUnits = v === true || v === 'true' || v === 'compact'
     },
     // Config with app-level settings (unit system) injected — what every
     // render/preview call sends; template saves keep using `config`.
