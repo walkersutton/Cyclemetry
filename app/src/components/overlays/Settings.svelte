@@ -30,7 +30,11 @@
   tabindex="-1"
   class="fixed inset-0 z-50 flex items-center justify-center pt-14"
 >
-  <div role="presentation" class="absolute inset-0 bg-black/60 backdrop-blur-sm" onmousedown={onclose}></div>
+  <div
+    role="presentation"
+    class="absolute inset-0 bg-black/60 backdrop-blur-sm"
+    onmousedown={onclose}
+  ></div>
   <WindowDragStrip />
 
   <!-- Panel -->

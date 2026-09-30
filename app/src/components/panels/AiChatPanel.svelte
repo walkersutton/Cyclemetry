@@ -34,7 +34,10 @@
       await app.generateTemplate(trimmed, { edit: isEdit })
       messages = [
         ...messages,
-        { role: 'assistant', text: isEdit ? 'Template updated.' : 'New template created.' },
+        {
+          role: 'assistant',
+          text: isEdit ? 'Template updated.' : 'New template created.',
+        },
       ]
     } catch (e) {
       messages = [...messages, { role: 'error', text: e?.message ?? String(e) }]
@@ -60,9 +63,13 @@
 
 <div class="flex flex-col h-full min-h-0">
   <!-- Header -->
-  <div class="px-4 py-3 border-b border-white/[0.06] flex items-center gap-2 shrink-0">
+  <div
+    class="px-4 py-3 border-b border-white/[0.06] flex items-center gap-2 shrink-0"
+  >
     <Sparkles size={12} class="text-[#dc143c] shrink-0" />
-    <span class="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 flex-1">
+    <span
+      class="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 flex-1"
+    >
       AI Assistant
     </span>
   </div>
@@ -70,7 +77,9 @@
   <!-- Mode toggle -->
   {#if app.config}
     <div class="px-4 pt-3 pb-2 shrink-0">
-      <div class="flex gap-0.5 rounded-[6px] border border-zinc-700 bg-zinc-800 p-0.5">
+      <div
+        class="flex gap-0.5 rounded-[6px] border border-zinc-700 bg-zinc-800 p-0.5"
+      >
         <button
           type="button"
           onclick={() => (mode = 'edit')}
@@ -98,9 +107,14 @@
   {/if}
 
   <!-- Messages -->
-  <div bind:this={messagesEl} class="flex-1 overflow-y-auto px-4 py-3 space-y-3 min-h-0">
+  <div
+    bind:this={messagesEl}
+    class="flex-1 overflow-y-auto px-4 py-3 space-y-3 min-h-0"
+  >
     {#if messages.length === 0}
-      <p class="text-[11px] text-zinc-600 mb-2">Try describing what you want:</p>
+      <p class="text-[11px] text-zinc-600 mb-2">
+        Try describing what you want:
+      </p>
       {#each examples as ex (ex)}
         <button
           type="button"
@@ -123,7 +137,11 @@
             <div
               class="max-w-[90%] rounded-[6px] bg-[#dc143c]/10 border border-[#dc143c]/20 px-3 py-2"
             >
-              <p class="text-[12px] text-zinc-200 leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+              <p
+                class="text-[12px] text-zinc-200 leading-relaxed whitespace-pre-wrap"
+              >
+                {msg.text}
+              </p>
             </div>
           </div>
         {:else if msg.role === 'assistant'}
@@ -132,7 +150,9 @@
               class="max-w-[90%] rounded-[6px] bg-zinc-800/60 border border-zinc-700 px-3 py-2 flex items-center gap-2"
             >
               <Sparkles size={10} class="text-[#dc143c] shrink-0" />
-              <p class="text-[12px] text-zinc-400 leading-relaxed">{msg.text}</p>
+              <p class="text-[12px] text-zinc-400 leading-relaxed">
+                {msg.text}
+              </p>
             </div>
           </div>
         {:else}
@@ -156,7 +176,8 @@
             <span
               class="h-1.5 w-1.5 rounded-full bg-zinc-500 animate-bounce [animation-delay:-0.15s]"
             ></span>
-            <span class="h-1.5 w-1.5 rounded-full bg-zinc-500 animate-bounce"></span>
+            <span class="h-1.5 w-1.5 rounded-full bg-zinc-500 animate-bounce"
+            ></span>
           </div>
         </div>
       {/if}

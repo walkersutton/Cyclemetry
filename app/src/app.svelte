@@ -822,7 +822,11 @@
 
       {#if AI_ASSISTANT_ENABLED}
         <!-- AI assistant (sidebar toggle) -->
-        <Tooltip content={showAiChat ? 'Close AI assistant' : 'Open AI assistant'} side="bottom" delay={TOOLTIP_DELAY}>
+        <Tooltip
+          content={showAiChat ? 'Close AI assistant' : 'Open AI assistant'}
+          side="bottom"
+          delay={TOOLTIP_DELAY}
+        >
           <button
             onclick={toggleAiChat}
             class="hdr-btn hdr-btn-icon shrink-0 cursor-pointer transition-colors
@@ -830,8 +834,8 @@
               ? 'bg-primary/20 text-primary hover:bg-primary/25'
               : 'bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary'}"
             aria-label={showAiChat ? 'Close AI assistant' : 'Open AI assistant'}
-            aria-pressed={showAiChat}
-          ><Sparkles size={12} /></button>
+            aria-pressed={showAiChat}><Sparkles size={12} /></button
+          >
         </Tooltip>
       {/if}
 
@@ -1134,7 +1138,9 @@
             class="h-[34px] gap-1.5 min-w-[104px] rounded-lg px-4 font-semibold text-white
                    shadow-[0_4px_14px_-4px_rgba(220,20,60,0.6)] hover:bg-[var(--accent-hover)]
                    disabled:bg-primary/25 disabled:text-white/60 disabled:opacity-100 disabled:shadow-none
-                   {onboardingStep === 0 && !hasRenderedOnce ? 'onboarding-glow' : ''}"
+                   {onboardingStep === 0 && !hasRenderedOnce
+              ? 'onboarding-glow'
+              : ''}"
             size="sm"
           >
             <Play size={13} fill="currentColor" strokeWidth={0} />

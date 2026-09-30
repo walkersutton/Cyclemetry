@@ -37,9 +37,7 @@
   }
 
   function onTextInput(raw) {
-    const sanitized = raw
-      .replace(/[^\d.]/g, '')
-      .replace(/(\..*)\./g, '$1')
+    const sanitized = raw.replace(/[^\d.]/g, '').replace(/(\..*)\./g, '$1')
     inputDraft = sanitized
     if (sanitized === '' || sanitized === '.') return
     const parsed = parseFloat(sanitized)
@@ -58,7 +56,8 @@
       e.key.startsWith('Arrow') ||
       e.key === 'Home' ||
       e.key === 'End'
-    ) return
+    )
+      return
     if (/^\d$/.test(e.key) || e.key === '.') return
     e.preventDefault()
   }
@@ -99,7 +98,8 @@
     onpointerup={endRangeEdit}
     onpointercancel={endRangeEdit}
     onkeydown={(e) => {
-      if (e.key.startsWith('Arrow') || e.key === 'Home' || e.key === 'End') beginRangeEdit()
+      if (e.key.startsWith('Arrow') || e.key === 'Home' || e.key === 'End')
+        beginRangeEdit()
     }}
     onkeyup={endRangeEdit}
     oninput={(e) => emit(e.target.value)}

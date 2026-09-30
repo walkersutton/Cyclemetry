@@ -5,21 +5,21 @@
 
   let {
     playhead = $bindable(0),
-    start = 0,                  // overlay window start (sceneStart)
-    end = 1,                    // overlay window end (sceneEnd)
+    start = 0, // overlay window start (sceneStart)
+    end = 1, // overlay window end (sceneEnd)
     playing = $bindable(false),
-    buffered = [],   // array of seconds that are ready in cache
+    buffered = [], // array of seconds that are ready in cache
     // Time-lapse output length in seconds. When set, the readout shows the
     // exported clip's time (the whole window compressed into this many seconds)
     // instead of ride-time, so the preview matches the export.
     outputDuration = null,
     onseek,
-    distanceInfo = null,     // { total_m, overlay_start_m, overlay_end_m }
-    customDistanceM = null,  // current custom reference point in metres
+    distanceInfo = null, // { total_m, overlay_start_m, overlay_end_m }
+    customDistanceM = null, // current custom reference point in metres
     oncustomdistancechange,
-    customTimeS = null,      // current custom time reference point in overlay-relative seconds
+    customTimeS = null, // current custom time reference point in overlay-relative seconds
     oncustomtimechange,
-    markerDistanceM = null,  // selected course marker position in metres
+    markerDistanceM = null, // selected course marker position in metres
     markerStyle = 'checkered',
     markerColor = '#ef4444',
     onmarkerdistancechange,
@@ -39,8 +39,12 @@
     onseek?.(playhead)
   }
 
-  function stepBack() { seek(Math.max(start, Math.floor(playhead) - 1)) }
-  function stepForward() { seek(Math.min(end, Math.floor(playhead) + 1)) }
+  function stepBack() {
+    seek(Math.max(start, Math.floor(playhead) - 1))
+  }
+  function stepForward() {
+    seek(Math.min(end, Math.floor(playhead) + 1))
+  }
 
   function onScrub(e) {
     seek(parseFloat(e.target.value))
@@ -68,7 +72,10 @@
   }
 
   function onLapEndScrub(e) {
-    const v = Math.max(parseFloat(e.target.value), (lapGate?.start ?? start) + 1)
+    const v = Math.max(
+      parseFloat(e.target.value),
+      (lapGate?.start ?? start) + 1,
+    )
     onlapgatechange?.('end', v)
     seek(v)
   }
@@ -142,7 +149,7 @@
       ? 'marker-circle'
       : markerStyle === 'rectangle'
         ? 'marker-rectangle'
-        : 'marker-checkered'
+        : 'marker-checkered',
   )
   let markerCss = $derived(`--cm-thumb: ${markerColor || '#ef4444'}`)
 </script>
@@ -151,7 +158,9 @@
   <!-- Scrub bar with buffered indicator -->
   <div class="relative h-5 flex items-center">
     <!-- Buffered ranges (visual only) -->
-    <div class="absolute inset-x-0 h-1 rounded-full bg-[var(--panel3)] overflow-hidden">
+    <div
+      class="absolute inset-x-0 h-1 rounded-full bg-[var(--panel3)] overflow-hidden"
+    >
       {#each buffered as s (s)}
         <div
           class="absolute h-full bg-zinc-600/50 w-[2px]"
@@ -183,7 +192,9 @@
   {#if distanceInfo && customDistanceM !== null}
     <div class="relative h-5 flex items-center">
       <div class="relative w-full h-full flex items-center">
-        <div class="absolute inset-x-0 h-1 rounded-full bg-[var(--panel3)]"></div>
+        <div
+          class="absolute inset-x-0 h-1 rounded-full bg-[var(--panel3)]"
+        ></div>
         <input
           type="range"
           min={distOverlayStart}
@@ -193,7 +204,9 @@
           oninput={onDistanceScrub}
           style="--cm-thumb: #f59e0b"
           class="cm-slider absolute inset-x-0 h-full w-full"
-          title="Custom distance reference: {customDistanceM >= 1000 ? (customDistanceM / 1000).toFixed(1) + ' km' : Math.round(customDistanceM) + ' m'}"
+          title="Custom distance reference: {customDistanceM >= 1000
+            ? (customDistanceM / 1000).toFixed(1) + ' km'
+            : Math.round(customDistanceM) + ' m'}"
         />
       </div>
     </div>
@@ -204,7 +217,9 @@
   {#if customTimeS !== null}
     <div class="relative h-5 flex items-center">
       <div class="relative w-full h-full flex items-center">
-        <div class="absolute inset-x-0 h-1 rounded-full bg-[var(--panel3)]"></div>
+        <div
+          class="absolute inset-x-0 h-1 rounded-full bg-[var(--panel3)]"
+        ></div>
         <input
           type="range"
           min={0}
@@ -228,11 +243,19 @@
   {#if lapGate}
     <div class="relative h-5 flex items-center">
       <div class="relative w-full h-full flex items-center">
-        <div class="absolute inset-x-0 h-1 rounded-full bg-[var(--panel3)]"></div>
+        <div
+          class="absolute inset-x-0 h-1 rounded-full bg-[var(--panel3)]"
+        ></div>
         <!-- Race window highlight between the handles -->
         <div
           class="absolute h-1 rounded-full bg-emerald-500/25"
-          style="left: {Math.max(0, Math.min(lapStartPct, 100))}%; width: {Math.max(0, Math.min(lapEndPct, 100) - Math.max(0, Math.min(lapStartPct, 100)))}%"
+          style="left: {Math.max(
+            0,
+            Math.min(lapStartPct, 100),
+          )}%; width: {Math.max(
+            0,
+            Math.min(lapEndPct, 100) - Math.max(0, Math.min(lapStartPct, 100)),
+          )}%"
         ></div>
         <input
           type="range"
@@ -243,7 +266,9 @@
           oninput={onLapStartScrub}
           style="--cm-thumb: #22c55e"
           class="cm-slider lap-handle absolute inset-x-0 h-full w-full"
-          title="Race start: {formatTime(lapGate.start - start)} — drag to the moment you first cross the line"
+          title="Race start: {formatTime(
+            lapGate.start - start,
+          )} — drag to the moment you first cross the line"
           aria-label="Race start"
         />
         <input
@@ -254,7 +279,9 @@
           value={Math.max(start, Math.min(lapGate.end, end))}
           oninput={onLapEndScrub}
           class="cm-slider lap-handle marker-checkered absolute inset-x-0 h-full w-full"
-          title="Race finish: {formatTime(lapGate.end - start)} — drag to the final crossing"
+          title="Race finish: {formatTime(
+            lapGate.end - start,
+          )} — drag to the final crossing"
           aria-label="Race finish"
         />
       </div>
@@ -266,7 +293,9 @@
   {#if distanceInfo && markerDistanceM !== null}
     <div class="relative h-5 flex items-center">
       <div class="relative w-full h-full flex items-center">
-        <div class="absolute inset-x-0 h-1 rounded-full bg-[var(--panel3)]"></div>
+        <div
+          class="absolute inset-x-0 h-1 rounded-full bg-[var(--panel3)]"
+        ></div>
         <input
           type="range"
           min={distOverlayStart}
@@ -276,7 +305,9 @@
           oninput={onMarkerScrub}
           style={markerCss}
           class="cm-slider {markerShapeClass} absolute inset-x-0 h-full w-full"
-          title="Course marker: {markerDistanceM >= 1000 ? (markerDistanceM / 1000).toFixed(1) + ' km' : Math.round(markerDistanceM) + ' m'}"
+          title="Course marker: {markerDistanceM >= 1000
+            ? (markerDistanceM / 1000).toFixed(1) + ' km'
+            : Math.round(markerDistanceM) + ' m'}"
         />
       </div>
     </div>
@@ -296,14 +327,19 @@
       </Tooltip>
 
       <button
-        onclick={() => playing = !playing}
+        onclick={() => (playing = !playing)}
         class="flex h-[38px] w-[38px] shrink-0 cursor-pointer items-center justify-center rounded-full bg-white text-[#050505] transition-transform duration-[80ms] hover:scale-105 active:scale-95"
         aria-label={playing ? 'Pause' : 'Play'}
       >
         {#if playing}
           <Pause size={17} fill="currentColor" strokeWidth={0} />
         {:else}
-          <Play size={17} fill="currentColor" strokeWidth={0} class="translate-x-[1px]" />
+          <Play
+            size={17}
+            fill="currentColor"
+            strokeWidth={0}
+            class="translate-x-[1px]"
+          />
         {/if}
       </button>
 
@@ -318,7 +354,9 @@
       </Tooltip>
     </div>
 
-    <span class="absolute right-0 font-mono text-[11px] text-[var(--dim)] tabular-nums">
+    <span
+      class="absolute right-0 font-mono text-[11px] text-[var(--dim)] tabular-nums"
+    >
       {formatTime(readoutCurrent)} / {formatTime(readoutTotal)}
     </span>
   </div>
@@ -348,7 +386,11 @@
       linear-gradient(45deg, transparent 75%, #111 75%),
       linear-gradient(-45deg, transparent 75%, #111 75%);
     background-size: 8px 8px;
-    background-position: 0 0, 0 4px, 4px -4px, -4px 0;
+    background-position:
+      0 0,
+      0 4px,
+      4px -4px,
+      -4px 0;
   }
   .marker-rectangle::-webkit-slider-thumb {
     width: 16px;

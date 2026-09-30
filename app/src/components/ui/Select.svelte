@@ -22,7 +22,10 @@
       const g = optGroup(o)
       if (g && !names.includes(g)) names.push(g)
     }
-    return names.map((name) => ({ name, opts: options.filter((o) => optGroup(o) === name) }))
+    return names.map((name) => ({
+      name,
+      opts: options.filter((o) => optGroup(o) === name),
+    }))
   })
 </script>
 

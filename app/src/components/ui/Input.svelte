@@ -28,7 +28,12 @@
   }
 
   function handleKeydown(e) {
-    if (isNumber && (e.metaKey || e.ctrlKey) && !e.shiftKey && (e.key === 'z' || e.key === 'Z')) {
+    if (
+      isNumber &&
+      (e.metaKey || e.ctrlKey) &&
+      !e.shiftKey &&
+      (e.key === 'z' || e.key === 'Z')
+    ) {
       e.preventDefault()
       app?.undo?.()
       e.currentTarget.blur()
@@ -37,7 +42,9 @@
     if (
       isNumber &&
       (e.metaKey || e.ctrlKey) &&
-      ((e.shiftKey && (e.key === 'z' || e.key === 'Z')) || e.key === 'y' || e.key === 'Y')
+      ((e.shiftKey && (e.key === 'z' || e.key === 'Z')) ||
+        e.key === 'y' ||
+        e.key === 'Y')
     ) {
       e.preventDefault()
       app?.redo?.()

@@ -25,7 +25,7 @@
   let pending = new SvelteSet()
   let shownWarnings = new SvelteSet()
 
-  let currentFrameData = $state(null)  // { image, elements }
+  let currentFrameData = $state(null) // { image, elements }
   let fetchError = $state(null)
   let previewNotice = $state(null)
   let playing = $state(false)
@@ -61,7 +61,9 @@
 
   // Buffered positions as seconds (for the scrub bar indicators)
   let bufferedSeconds = $derived(
-    [...cache.keys()].map(idx => sceneStart + idx / previewFps).sort((a, b) => a - b)
+    [...cache.keys()]
+      .map((idx) => sceneStart + idx / previewFps)
+      .sort((a, b) => a - b),
   )
 
   function clearBuffer() {
@@ -70,23 +72,36 @@
     pending.clear()
     fetchError = null
     previewNotice = null
-    if (stallTimer) { clearTimeout(stallTimer); stallTimer = null }
+    if (stallTimer) {
+      clearTimeout(stallTimer)
+      stallTimer = null
+    }
   }
 
   async function fetchFrame(frameIdx) {
     const config = app.renderConfig
     if (!config) return console.debug('[tpl-diag] fetchFrame bail: no config')
-    if (!app.hasActivity) return console.debug('[tpl-diag] fetchFrame bail: no activity')
+    if (!app.hasActivity)
+      return console.debug('[tpl-diag] fetchFrame bail: no activity')
     const fps = app.previewFps ?? 1
     const start = config.scene?.start ?? 0
     const end = config.scene?.end ?? app.timelineDuration
     const maxFrameIdx = Math.round((end - start) * fps)
     if (frameIdx < 0 || frameIdx > maxFrameIdx)
-      return console.debug('[tpl-diag] fetchFrame bail: frameIdx out of range', { frameIdx, maxFrameIdx, start, end })
+      return console.debug(
+        '[tpl-diag] fetchFrame bail: frameIdx out of range',
+        { frameIdx, maxFrameIdx, start, end },
+      )
     if (cache.has(frameIdx) || pending.has(frameIdx))
-      return console.debug('[tpl-diag] fetchFrame bail: cache/pending has', frameIdx)
+      return console.debug(
+        '[tpl-diag] fetchFrame bail: cache/pending has',
+        frameIdx,
+      )
     if (pending.size >= MAX_CONCURRENT)
-      return console.debug('[tpl-diag] fetchFrame bail: MAX_CONCURRENT', pending.size)
+      return console.debug(
+        '[tpl-diag] fetchFrame bail: MAX_CONCURRENT',
+        pending.size,
+      )
     console.debug('[tpl-diag] fetchFrame start', { frameIdx, fps, start, end })
     const gpx = app.gpxFilename
 
@@ -97,23 +112,46 @@
     try {
       slowTimer = setTimeout(() => {
         if (generation !== previewGeneration || currentFrameData) return
-        previewNotice = 'Preparing preview is taking a little longer than usual…'
+        previewNotice =
+          'Preparing preview is taking a little longer than usual…'
       }, PREVIEW_SLOW_MS)
       const timeout = new Promise((_, reject) => {
         hardTimer = setTimeout(
-          () => reject(new Error('Preview is taking too long to generate. Choose an activity and template again, or retry if this keeps happening.')),
+          () =>
+            reject(
+              new Error(
+                'Preview is taking too long to generate. Choose an activity and template again, or retry if this keeps happening.',
+              ),
+            ),
           PREVIEW_HARD_TIMEOUT_MS,
         )
       })
       const renderStart = performance.now()
-      let data = await Promise.race([backend.nativeGenerateDemo(config, gpx, frameIdx, fps, previewW, previewH, app.riderWeightKg), timeout])
+      let data = await Promise.race([
+        backend.nativeGenerateDemo(
+          config,
+          gpx,
+          frameIdx,
+          fps,
+          previewW,
+          previewH,
+          app.riderWeightKg,
+        ),
+        timeout,
+      ])
       if (generation !== previewGeneration) return
       recordRenderLatency(performance.now() - renderStart)
       if (data?.image) {
-        console.debug('[tpl-diag] fetchFrame got image', { frameIdx, elements: data.elements?.length })
+        console.debug('[tpl-diag] fetchFrame got image', {
+          frameIdx,
+          elements: data.elements?.length,
+        })
         fetchError = null
         previewNotice = null
-        if (stallTimer) { clearTimeout(stallTimer); stallTimer = null }
+        if (stallTimer) {
+          clearTimeout(stallTimer)
+          stallTimer = null
+        }
         // If the saved GPX file no longer exists, clear the stale state and
         // open the activity picker so the user can reselect.
         if (data.warning && !shownWarnings.has(data.warning)) {
@@ -134,11 +172,17 @@
         }
         // Show this frame if it's current, or if we don't have the current frame yet
         const currentIdx = secToFrameIdx(app.selectedSecond, fps, start)
-        if (frameIdx === currentIdx || (frameIdx < currentIdx && !cache.has(currentIdx))) {
+        if (
+          frameIdx === currentIdx ||
+          (frameIdx < currentIdx && !cache.has(currentIdx))
+        ) {
           console.debug('[tpl-diag] currentFrameData <- frame', frameIdx)
           currentFrameData = data
         } else {
-          console.debug('[tpl-diag] frame NOT shown (not current)', { frameIdx, currentIdx })
+          console.debug('[tpl-diag] frame NOT shown (not current)', {
+            frameIdx,
+            currentIdx,
+          })
         }
       }
     } catch (e) {
@@ -233,11 +277,16 @@
       const frameIdx = secToFrameIdx(s, _fps, start)
       fetchFrame(frameIdx)
       if (stallTimer) clearTimeout(stallTimer)
-      stallTimer = setTimeout(() => { stallTimer = null }, 5000)
+      stallTimer = setTimeout(() => {
+        stallTimer = null
+      }, 5000)
     }, 160)
 
     return () => {
-      if (configDebounce) { clearTimeout(configDebounce); configDebounce = null }
+      if (configDebounce) {
+        clearTimeout(configDebounce)
+        configDebounce = null
+      }
     }
   })
 
@@ -253,12 +302,15 @@
     // When the renderer falls behind during playback the previous frame stays
     // on screen; on sparse telemetry that hold is imperceptible, and the auto
     // tuner backs off the frame rate on its own — so there's nothing to surface.
-    untrack(() => { for (let i = 0; i < PREFETCH_AHEAD; i++) fetchFrame(frameIdx + i) })
+    untrack(() => {
+      for (let i = 0; i < PREFETCH_AHEAD; i++) fetchFrame(frameIdx + i)
+    })
   })
 
   // Keep app.currentPreviewImage in sync so saveTemplate can use the latest frame.
   $effect(() => {
-    if (currentFrameData?.image) app.currentPreviewImage = currentFrameData.image
+    if (currentFrameData?.image)
+      app.currentPreviewImage = currentFrameData.image
     else if (!app.hasActivity) app.currentPreviewImage = null
   })
 
@@ -270,7 +322,9 @@
     } else {
       if (rafHandle) cancelAnimationFrame(rafHandle)
     }
-    return () => { if (rafHandle) cancelAnimationFrame(rafHandle) }
+    return () => {
+      if (rafHandle) cancelAnimationFrame(rafHandle)
+    }
   })
 
   // While the video backdrop is in range and playing, the video element is
@@ -371,19 +425,28 @@
     const config = app.config
     if (!id || !config?.elements) return null
     const el = config.elements.find((e) => e.id === id)
-    if (!el || el.type !== 'plot' || el.value !== 'course' || !el.markers?.length) return null
-    return el.markers.find((m) => m.id === app.selectedCourseMarkerId) ?? el.markers[0]
+    if (
+      !el ||
+      el.type !== 'plot' ||
+      el.value !== 'course' ||
+      !el.markers?.length
+    )
+      return null
+    return (
+      el.markers.find((m) => m.id === app.selectedCourseMarkerId) ??
+      el.markers[0]
+    )
   })
 
   let showDistanceBar = $derived(
     selectedDistanceEl?.value === 'distance' &&
-    (selectedDistanceEl?.distance_reference === 'until_custom' ||
-     selectedDistanceEl?.distance_reference === 'since_custom')
+      (selectedDistanceEl?.distance_reference === 'until_custom' ||
+        selectedDistanceEl?.distance_reference === 'since_custom'),
   )
   let showTimeBar = $derived(
     selectedDistanceEl?.value === 'time' &&
-    (selectedDistanceEl?.time_reference === 'until_custom' ||
-     selectedDistanceEl?.time_reference === 'since_custom')
+      (selectedDistanceEl?.time_reference === 'until_custom' ||
+        selectedDistanceEl?.time_reference === 'since_custom'),
   )
   let showCourseMarkerBar = $derived(!!selectedCourseMarker)
 
@@ -396,7 +459,7 @@
     return t * 1000
   })
   let courseMarkerDistanceM = $derived(
-    showCourseMarkerBar ? (selectedCourseMarker?.distance ?? 0) : null
+    showCourseMarkerBar ? (selectedCourseMarker?.distance ?? 0) : null,
   )
 
   let distanceInfo = $state(null)
@@ -413,9 +476,14 @@
     const gpx = app.gpxFilename
     const start = sceneStart
     const end = sceneEnd
-    backend.getActivityDistanceInfo(gpx, start, end)
-      .then(info => { distanceInfo = info })
-      .catch(() => { distanceInfo = null })
+    backend
+      .getActivityDistanceInfo(gpx, start, end)
+      .then((info) => {
+        distanceInfo = info
+      })
+      .catch(() => {
+        distanceInfo = null
+      })
   })
 
   function onCustomDistanceChange(newM) {
@@ -425,12 +493,15 @@
     const unit = el.unit ?? 'km'
     let displayVal
     if (unit === 'm') displayVal = newM
-    else if (unit === 'mi') displayVal = Math.round((newM / 1609.34) * 100) / 100
+    else if (unit === 'mi')
+      displayVal = Math.round((newM / 1609.34) * 100) / 100
     else displayVal = Math.round((newM / 1000) * 100) / 100
     app.updateElement(id, { distance_target: displayVal })
   }
 
-  let customTimeS = $derived(showTimeBar ? (selectedDistanceEl?.time_target ?? 0) : null)
+  let customTimeS = $derived(
+    showTimeBar ? (selectedDistanceEl?.time_target ?? 0) : null,
+  )
 
   function onCustomTimeChange(newS) {
     const id = app.selectedElementId
@@ -445,7 +516,8 @@
   // dragging one also scrubs the preview there so the user can see themselves
   // cross the line. Defaults span the overlay window until the gate exists.
   let lapGateForBar = $derived.by(() => {
-    if (!selectedDistanceEl || !isLapMetric(selectedDistanceEl.value)) return null
+    if (!selectedDistanceEl || !isLapMetric(selectedDistanceEl.value))
+      return null
     const gate = app.config?.scene?.lap_gate
     return {
       start: gate?.start ?? sceneStart,
@@ -471,9 +543,11 @@
     const marker = selectedCourseMarker
     if (!el || el.type !== 'plot' || !marker) return
     app.updateElement(id, {
-      markers: (el.markers ?? []).map((m) => (
-        m === marker || (marker.id && m.id === marker.id) ? { ...m, distance: newM } : m
-      )),
+      markers: (el.markers ?? []).map((m) =>
+        m === marker || (marker.id && m.id === marker.id)
+          ? { ...m, distance: newM }
+          : m,
+      ),
     })
   }
   // Base preview render size. The frame is shown in a viewport-sized box that's
@@ -485,7 +559,9 @@
   // the separate crop layer (below) supersamples the visible window for crisp
   // zoomed text. Aspect ratio always follows the output.
   let zoom = $state(1)
-  let dpr = $state(typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1)
+  let dpr = $state(
+    typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1,
+  )
   let boxCssW = $state(0)
   let previewW = $derived.by(() => {
     const ow = app.outputWidth ?? 1920
@@ -506,7 +582,9 @@
   let sceneH = $derived(currentFrameData?.height ?? previewH)
   // The box geometry follows the export aspect ratio so it never jumps while
   // the rendered frame size changes (frames always preserve the output aspect).
-  let aspectRatio = $derived((app.outputHeight ?? 1080) / (app.outputWidth ?? 1920))
+  let aspectRatio = $derived(
+    (app.outputHeight ?? 1080) / (app.outputWidth ?? 1920),
+  )
   let sceneInvalid = $derived(sceneEnd <= sceneStart)
 
   // Preview zoom/pan. Pinch or Ctrl+wheel zooms toward the cursor; two-finger
@@ -525,9 +603,12 @@
   // rebuild on every sub-pixel of a window-resize drag.
   $effect(() => {
     if (!stageEl) return
-    const apply = (w) => { if (w) boxCssW = Math.round(w / 8) * 8 }
+    const apply = (w) => {
+      if (w) boxCssW = Math.round(w / 8) * 8
+    }
     const ro = new ResizeObserver((entries) => {
-      for (const e of entries) apply(e.contentRect?.width ?? stageEl.offsetWidth)
+      for (const e of entries)
+        apply(e.contentRect?.width ?? stageEl.offsetWidth)
     })
     ro.observe(stageEl)
     apply(stageEl.offsetWidth)
@@ -608,17 +689,34 @@
 
   async function fetchCrop() {
     const v = computeCropView()
-    if (!v) { cropVisible = false; return }
+    if (!v) {
+      cropVisible = false
+      return
+    }
     const gen = ++cropGen
     const config = app.renderConfig
     const gpx = app.gpxFilename
     const fps = app.previewFps ?? 1
     const start = config?.scene?.start ?? 0
-    const frameIdx = secToFrameIdx(Math.max(start, app.selectedSecond), fps, start)
+    const frameIdx = secToFrameIdx(
+      Math.max(start, app.selectedSecond),
+      fps,
+      start,
+    )
     try {
       const data = await backend.nativeGenerateDemoCrop(
-        config, gpx, frameIdx, fps, v.baseW, v.baseH,
-        v.view.vx, v.view.vy, v.view.vw, v.view.vh, v.view.outW, v.view.outH,
+        config,
+        gpx,
+        frameIdx,
+        fps,
+        v.baseW,
+        v.baseH,
+        v.view.vx,
+        v.view.vy,
+        v.view.vw,
+        v.view.vh,
+        v.view.outW,
+        v.view.outH,
         app.riderWeightKg,
       )
       if (gen !== cropGen) return // superseded by a newer view
@@ -641,13 +739,25 @@
     void panX
     void panY
     const base = currentFrameData
-    const active = z > 1 && !playing && !!base?.image && !sceneInvalid && app.hasActivity
+    const active =
+      z > 1 && !playing && !!base?.image && !sceneInvalid && app.hasActivity
     cropVisible = false // hide stale crop instantly → base (gap-free) shows through
     cropGen++ // invalidate any in-flight fetch
-    if (cropDebounce) { clearTimeout(cropDebounce); cropDebounce = null }
+    if (cropDebounce) {
+      clearTimeout(cropDebounce)
+      cropDebounce = null
+    }
     if (!active) return
-    cropDebounce = setTimeout(() => { cropDebounce = null; fetchCrop() }, CROP_DEBOUNCE_MS)
-    return () => { if (cropDebounce) { clearTimeout(cropDebounce); cropDebounce = null } }
+    cropDebounce = setTimeout(() => {
+      cropDebounce = null
+      fetchCrop()
+    }, CROP_DEBOUNCE_MS)
+    return () => {
+      if (cropDebounce) {
+        clearTimeout(cropDebounce)
+        cropDebounce = null
+      }
+    }
   })
 
   // Keep the scaled content overlapping the viewport so it can't be lost.
@@ -670,7 +780,10 @@
     if (e.ctrlKey) {
       // Pinch / Ctrl+wheel → zoom toward the cursor.
       e.preventDefault()
-      const next = Math.min(MAX_VIEWER_ZOOM, Math.max(1, zoom * Math.exp(-e.deltaY * 0.01)))
+      const next = Math.min(
+        MAX_VIEWER_ZOOM,
+        Math.max(1, zoom * Math.exp(-e.deltaY * 0.01)),
+      )
       if (next === zoom) return
       const rect = stageEl.getBoundingClientRect()
       const ratio = 1 - next / zoom
@@ -718,17 +831,22 @@
       return
     if (!app.config || !app.hasActivity || sceneInvalid) return
     e.preventDefault()
-    if (!playing && app.selectedSecond >= sceneEnd) app.selectedSecond = sceneStart
+    if (!playing && app.selectedSecond >= sceneEnd)
+      app.selectedSecond = sceneStart
     playing = !playing
   }
 </script>
 
 <svelte:window onkeydown={onKeydown} />
 
-<main class="flex-1 flex flex-col overflow-hidden bg-[var(--panel)] rounded-[10px] min-w-0">
+<main
+  class="flex-1 flex flex-col overflow-hidden bg-[var(--panel)] rounded-[10px] min-w-0"
+>
   <!-- Zoom indicator — pinned above the canvas, visible regardless of pan position -->
   {#if app.config && zoom !== 1}
-    <div class="shrink-0 flex items-center justify-end px-3 py-1 border-b border-white/[0.06]">
+    <div
+      class="shrink-0 flex items-center justify-end px-3 py-1 border-b border-white/[0.06]"
+    >
       <button
         onclick={resetZoom}
         class="cursor-pointer text-[10px] font-mono text-zinc-400 hover:text-primary transition-colors"
@@ -758,13 +876,15 @@
         <!-- Background -->
         <div
           class="absolute inset-0 rounded-lg overflow-hidden bg-[#0a0a0a]"
-          style={currentFrameData?.image ? `background-image:
+          style={currentFrameData?.image
+            ? `background-image:
             linear-gradient(45deg, #1a1a1a 25%, transparent 25%),
             linear-gradient(-45deg, #1a1a1a 25%, transparent 25%),
             linear-gradient(45deg, transparent 75%, #1a1a1a 75%),
             linear-gradient(-45deg, transparent 75%, #1a1a1a 75%);
             background-size: 16px 16px;
-            background-position: 0 0, 0 8px, 8px -8px, -8px 0px;` : ''}
+            background-position: 0 0, 0 8px, 8px -8px, -8px 0px;`
+            : ''}
         ></div>
 
         <!-- Reference video backdrop — driven by selectedSecond, hidden when out of range -->
@@ -775,8 +895,12 @@
         <!-- Rendered frame -->
         {#if sceneInvalid}
           <!-- Invalid timeline range — shown first so it always wins over stale frame/spinner -->
-          <div class="absolute inset-0 flex flex-col items-center justify-center gap-2 px-6">
-            <p class="text-xs text-red-500 text-center">Fix the timeline range — start must be less than end</p>
+          <div
+            class="absolute inset-0 flex flex-col items-center justify-center gap-2 px-6"
+          >
+            <p class="text-xs text-red-500 text-center">
+              Fix the timeline range — start must be less than end
+            </p>
           </div>
         {:else if currentFrameData?.image}
           <div class="absolute inset-0 rounded-lg overflow-hidden">
@@ -788,12 +912,25 @@
           </div>
         {:else if fetchError}
           <!-- Error state -->
-          <div class="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6">
-            <svg class="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+          <div
+            class="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6"
+          >
+            <svg
+              class="h-5 w-5 text-red-500"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
+              />
             </svg>
-            <p class="text-xs text-red-400 text-center leading-relaxed">{fetchError}</p>
+            <p class="text-xs text-red-400 text-center leading-relaxed">
+              {fetchError}
+            </p>
             <button
               class="inline-flex cursor-pointer items-center gap-1.5 text-xs text-zinc-200 bg-zinc-800/80 hover:bg-zinc-700 border border-zinc-600 hover:border-zinc-500 rounded px-3 py-1.5 transition-colors"
               onclick={reportPreviewIssue}
@@ -804,12 +941,31 @@
           </div>
         {:else}
           <!-- Generating preview -->
-          <div class="absolute inset-0 flex flex-col items-center justify-center gap-2">
-            <svg class="h-5 w-5 text-zinc-600 animate-spin" viewBox="0 0 24 24" fill="none">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+          <div
+            class="absolute inset-0 flex flex-col items-center justify-center gap-2"
+          >
+            <svg
+              class="h-5 w-5 text-zinc-600 animate-spin"
+              viewBox="0 0 24 24"
+              fill="none"
+            >
+              <circle
+                class="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                stroke-width="4"
+              />
+              <path
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+              />
             </svg>
-            <p class="text-xs text-zinc-600">{previewNotice ?? 'Generating preview…'}</p>
+            <p class="text-xs text-zinc-600">
+              {previewNotice ?? 'Generating preview…'}
+            </p>
           </div>
         {/if}
 
@@ -837,39 +993,91 @@
             {zoom}
           />
         {/if}
-
       </div>
     {:else}
       <!-- Onboarding quick-start guide -->
-      <div class="flex flex-col items-center justify-center gap-8 px-6 select-none">
-        <p class="text-[11px] font-semibold tracking-[0.22em] uppercase text-[var(--dim)]">Quick start</p>
+      <div
+        class="flex flex-col items-center justify-center gap-8 px-6 select-none"
+      >
+        <p
+          class="text-[11px] font-semibold tracking-[0.22em] uppercase text-[var(--dim)]"
+        >
+          Quick start
+        </p>
         <div class="flex items-stretch gap-[18px]">
-
           <!-- Step 1 — Choose a template -->
           <button
-            onclick={() => { app.showTemplatePicker = true }}
-            class="onboarding-card {quickStartStep === 1 ? 'onboarding-card--active' : quickStartStep1Complete ? 'onboarding-card--complete' : 'border-white/[0.06] opacity-40'} w-[196px] rounded-2xl border bg-[var(--panel2)] p-[22px]
+            onclick={() => {
+              app.showTemplatePicker = true
+            }}
+            class="onboarding-card {quickStartStep === 1
+              ? 'onboarding-card--active'
+              : quickStartStep1Complete
+                ? 'onboarding-card--complete'
+                : 'border-white/[0.06] opacity-40'} w-[196px] rounded-2xl border bg-[var(--panel2)] p-[22px]
                    flex flex-col items-center gap-3.5 text-center transition-transform duration-200
                    hover:-translate-y-1 cursor-pointer"
           >
-            <span class="onboarding-step-badge {quickStartStep === 1 ? 'onboarding-step-badge--active' : quickStartStep1Complete ? 'onboarding-step-badge--complete' : 'border border-white/[0.06] bg-[var(--panel3)] text-zinc-500'}
-                         w-[30px] h-[30px] rounded-full flex items-center justify-center text-[13px] font-bold">
+            <span
+              class="onboarding-step-badge {quickStartStep === 1
+                ? 'onboarding-step-badge--active'
+                : quickStartStep1Complete
+                  ? 'onboarding-step-badge--complete'
+                  : 'border border-white/[0.06] bg-[var(--panel3)] text-zinc-500'}
+                         w-[30px] h-[30px] rounded-full flex items-center justify-center text-[13px] font-bold"
+            >
               {#if quickStartStep1Complete}
-                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                <svg
+                  class="w-3.5 h-3.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="3"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M5 13l4 4L19 7"
+                  />
                 </svg>
               {:else}
                 1
               {/if}
             </span>
             <div class="flex flex-col gap-1">
-              <p class="text-[15px] font-semibold {quickStartStep === 1 || quickStartStep1Complete ? 'text-zinc-100' : 'text-zinc-400'}">Choose a Template</p>
-              <p class="text-xs {quickStartStep === 1 || quickStartStep1Complete ? 'text-[var(--dim)]' : 'text-zinc-600'} leading-relaxed">Pick a layout for your overlay</p>
+              <p
+                class="text-[15px] font-semibold {quickStartStep === 1 ||
+                quickStartStep1Complete
+                  ? 'text-zinc-100'
+                  : 'text-zinc-400'}"
+              >
+                Choose a Template
+              </p>
+              <p
+                class="text-xs {quickStartStep === 1 || quickStartStep1Complete
+                  ? 'text-[var(--dim)]'
+                  : 'text-zinc-600'} leading-relaxed"
+              >
+                Pick a layout for your overlay
+              </p>
             </div>
             <!-- Grid icon -->
-            <svg class="w-[30px] h-[30px] {quickStartStep === 1 ? 'text-primary opacity-80' : quickStartStep1Complete ? 'text-emerald-400/70' : 'text-zinc-600'} mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-              <path stroke-linecap="round" stroke-linejoin="round"
-                d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"/>
+            <svg
+              class="w-[30px] h-[30px] {quickStartStep === 1
+                ? 'text-primary opacity-80'
+                : quickStartStep1Complete
+                  ? 'text-emerald-400/70'
+                  : 'text-zinc-600'} mt-1"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"
+              />
             </svg>
           </button>
 
@@ -877,46 +1085,110 @@
           <button
             type="button"
             onclick={() => onopenactivity?.()}
-            class="onboarding-card {quickStartStep === 2 ? 'onboarding-card--active' : quickStartStep2Complete ? 'onboarding-card--complete' : 'border-white/[0.06] opacity-70 hover:opacity-100'} w-[196px] rounded-2xl border bg-[var(--panel2)]
+            class="onboarding-card {quickStartStep === 2
+              ? 'onboarding-card--active'
+              : quickStartStep2Complete
+                ? 'onboarding-card--complete'
+                : 'border-white/[0.06] opacity-70 hover:opacity-100'} w-[196px] rounded-2xl border bg-[var(--panel2)]
                       p-[22px] flex flex-col items-center gap-3.5 text-center transition-[transform,opacity] duration-200
-                      hover:-translate-y-1 cursor-pointer">
-            <span class="onboarding-step-badge {quickStartStep === 2 ? 'onboarding-step-badge--active' : quickStartStep2Complete ? 'onboarding-step-badge--complete' : 'border border-white/[0.06] bg-[var(--panel3)] text-zinc-500'} w-[30px] h-[30px] rounded-full
-                         flex items-center justify-center text-[13px] font-bold">
+                      hover:-translate-y-1 cursor-pointer"
+          >
+            <span
+              class="onboarding-step-badge {quickStartStep === 2
+                ? 'onboarding-step-badge--active'
+                : quickStartStep2Complete
+                  ? 'onboarding-step-badge--complete'
+                  : 'border border-white/[0.06] bg-[var(--panel3)] text-zinc-500'} w-[30px] h-[30px] rounded-full
+                         flex items-center justify-center text-[13px] font-bold"
+            >
               {#if quickStartStep2Complete}
-                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                <svg
+                  class="w-3.5 h-3.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="3"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M5 13l4 4L19 7"
+                  />
                 </svg>
               {:else}
                 2
               {/if}
             </span>
             <div class="flex flex-col gap-1">
-              <p class="text-[15px] font-semibold {quickStartStep === 2 || quickStartStep2Complete ? 'text-zinc-100' : 'text-zinc-400'}">Load Activity</p>
-              <p class="text-xs {quickStartStep === 2 || quickStartStep2Complete ? 'text-[var(--dim)]' : 'text-zinc-600'} leading-relaxed">Open a GPX, FIT, or TCX file</p>
+              <p
+                class="text-[15px] font-semibold {quickStartStep === 2 ||
+                quickStartStep2Complete
+                  ? 'text-zinc-100'
+                  : 'text-zinc-400'}"
+              >
+                Load Activity
+              </p>
+              <p
+                class="text-xs {quickStartStep === 2 || quickStartStep2Complete
+                  ? 'text-[var(--dim)]'
+                  : 'text-zinc-600'} leading-relaxed"
+              >
+                Open a GPX, FIT, or TCX file
+              </p>
             </div>
             <!-- Activity icon -->
-            <svg class="w-[30px] h-[30px] {quickStartStep === 2 ? 'text-primary opacity-80' : quickStartStep2Complete ? 'text-emerald-400/70' : 'text-zinc-600'} mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-              <path stroke-linecap="round" stroke-linejoin="round"
-                d="M3 12h3l3-9 4 18 3-9h5"/>
+            <svg
+              class="w-[30px] h-[30px] {quickStartStep === 2
+                ? 'text-primary opacity-80'
+                : quickStartStep2Complete
+                  ? 'text-emerald-400/70'
+                  : 'text-zinc-600'} mt-1"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M3 12h3l3-9 4 18 3-9h5"
+              />
             </svg>
           </button>
 
           <!-- Step 3 — Render (dimmed) -->
-          <div class="onboarding-card w-[196px] rounded-2xl border border-white/[0.06] bg-[var(--panel2)]
-                      p-[22px] flex flex-col items-center gap-3.5 text-center opacity-40 cursor-default">
-            <span class="onboarding-step-badge w-[30px] h-[30px] rounded-full border border-white/[0.06] bg-[var(--panel3)]
-                         flex items-center justify-center text-[13px] font-bold text-zinc-500">3</span>
+          <div
+            class="onboarding-card w-[196px] rounded-2xl border border-white/[0.06] bg-[var(--panel2)]
+                      p-[22px] flex flex-col items-center gap-3.5 text-center opacity-40 cursor-default"
+          >
+            <span
+              class="onboarding-step-badge w-[30px] h-[30px] rounded-full border border-white/[0.06] bg-[var(--panel3)]
+                         flex items-center justify-center text-[13px] font-bold text-zinc-500"
+              >3</span
+            >
             <div class="flex flex-col gap-1">
-              <p class="text-[15px] font-semibold text-zinc-400">Render Video</p>
-              <p class="text-xs text-zinc-600 leading-relaxed">Export the overlay to a file</p>
+              <p class="text-[15px] font-semibold text-zinc-400">
+                Render Video
+              </p>
+              <p class="text-xs text-zinc-600 leading-relaxed">
+                Export the overlay to a file
+              </p>
             </div>
             <!-- Play icon -->
-            <svg class="w-[30px] h-[30px] text-zinc-600 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-              <path stroke-linecap="round" stroke-linejoin="round"
-                d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 010 1.972l-11.54 6.347c-.75.412-1.667-.13-1.667-.986V5.653z"/>
+            <svg
+              class="w-[30px] h-[30px] text-zinc-600 mt-1"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 010 1.972l-11.54 6.347c-.75.412-1.667-.13-1.667-.986V5.653z"
+              />
             </svg>
           </div>
-
         </div>
       </div>
     {/if}
@@ -929,25 +1201,29 @@
 
   <!-- Playback controls — only shown once a template and activity are loaded -->
   {#if app.config && app.hasActivity}
-  <PlaybackControls
-    bind:playhead={app.selectedSecond}
-    start={sceneStart}
-    end={sceneEnd}
-    bind:playing
-    buffered={bufferedSeconds}
-    outputDuration={playbackSpeedup > 1 ? (app.config?.scene?.target_duration ?? null) : null}
-    onseek={seek}
-    distanceInfo={(showDistanceBar || showCourseMarkerBar) ? distanceInfo : null}
-    customDistanceM={showDistanceBar ? customDistanceM : null}
-    oncustomdistancechange={onCustomDistanceChange}
-    customTimeS={customTimeS}
-    oncustomtimechange={onCustomTimeChange}
-    markerDistanceM={showCourseMarkerBar ? courseMarkerDistanceM : null}
-    markerStyle={selectedCourseMarker?.style ?? 'checkered'}
-    markerColor={selectedCourseMarker?.color ?? '#ef4444'}
-    onmarkerdistancechange={onCourseMarkerDistanceChange}
-    lapGate={lapGateForBar}
-    onlapgatechange={onLapGateChange}
-  />
+    <PlaybackControls
+      bind:playhead={app.selectedSecond}
+      start={sceneStart}
+      end={sceneEnd}
+      bind:playing
+      buffered={bufferedSeconds}
+      outputDuration={playbackSpeedup > 1
+        ? (app.config?.scene?.target_duration ?? null)
+        : null}
+      onseek={seek}
+      distanceInfo={showDistanceBar || showCourseMarkerBar
+        ? distanceInfo
+        : null}
+      customDistanceM={showDistanceBar ? customDistanceM : null}
+      oncustomdistancechange={onCustomDistanceChange}
+      {customTimeS}
+      oncustomtimechange={onCustomTimeChange}
+      markerDistanceM={showCourseMarkerBar ? courseMarkerDistanceM : null}
+      markerStyle={selectedCourseMarker?.style ?? 'checkered'}
+      markerColor={selectedCourseMarker?.color ?? '#ef4444'}
+      onmarkerdistancechange={onCourseMarkerDistanceChange}
+      lapGate={lapGateForBar}
+      onlapgatechange={onLapGateChange}
+    />
   {/if}
 </main>

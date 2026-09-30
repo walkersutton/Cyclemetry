@@ -357,7 +357,9 @@
             {/each}
           </div>
         {:else if loadError}
-          <p class="text-xs text-red-400 select-text cursor-text">{loadError}</p>
+          <p class="text-xs text-red-400 select-text cursor-text">
+            {loadError}
+          </p>
         {:else if saved.length === 0}
           <p class="text-xs text-zinc-500">
             No activities yet. Choose one from disk to get started.
@@ -473,7 +475,9 @@
           </div>
 
           {#if stravaError}
-            <p class="text-xs text-red-400 select-text cursor-text">{stravaError}</p>
+            <p class="text-xs text-red-400 select-text cursor-text">
+              {stravaError}
+            </p>
           {:else if stravaLoading}
             <div class="grid grid-cols-2 gap-2">
               {#each [1, 2, 3, 4] as i (i)}
