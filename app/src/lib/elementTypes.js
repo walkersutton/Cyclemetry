@@ -506,7 +506,13 @@ export const ADD_PRESETS = [
 export function elementMeta(el) {
   if (!el) return { icon: 'bar', name: '', kind: 'plot', unit: null }
   if (el.type === 'label')
-    return { icon: 'type', name: el.text || 'Label', kind: 'label', unit: null }
+    return {
+      icon: 'type',
+      // Unit labels have no static text; name them after the metric they track.
+      name: el.unit_of ? `${el.unit_of} unit` : el.text || 'Label',
+      kind: 'label',
+      unit: null,
+    }
   if (el.type === 'value')
     return {
       icon: 'hash',

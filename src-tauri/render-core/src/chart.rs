@@ -604,9 +604,10 @@ impl ChartCache {
                 // Pre-format all lines and find max width to decide which side
                 // to place the label block. Near the right edge the block flips
                 // left so it never overflows the chart surface.
+                let compact = pl.compact_units.unwrap_or(false);
                 let lines: Vec<String> = units
                     .iter()
-                    .map(|unit| format_point_label(raw, &self.value_attr, unit, dec))
+                    .map(|unit| format_point_label(raw, &self.value_attr, unit, dec, compact))
                     .collect();
                 let max_text_w = lines
                     .iter()
@@ -637,9 +638,13 @@ impl ChartCache {
 /// Format a plotted value for a point label in the requested unit system,
 /// producing "<number> <SUFFIX>" (e.g. "960 M", "3150 FT"). `raw` is the
 /// attribute's native unit (elevation: metres, speed: m/s, temp: °C).
-fn format_point_label(raw: f64, attr: &str, unit: &str, decimals: i32) -> String {
+fn format_point_label(raw: f64, attr: &str, unit: &str, decimals: i32, compact: bool) -> String {
     let (conv, suffix) = units::resolve(attr, Some(unit));
-    format!("{} {}", round_str(conv.apply(raw), decimals), suffix)
+    format!(
+        "{} {}",
+        round_str(conv.apply(raw), decimals),
+        units::compact_unit(&suffix, compact)
+    )
 }
 
 fn round_str(v: f64, decimals: i32) -> String {
@@ -1112,42 +1117,88 @@ mod tests {
     #[test]
     fn elevation_metric_and_imperial_match_screenshot_format() {
         // 960 m -> "960 M"; 960 * 3.28084 = 3149.6 -> "3150 FT"
-        assert_eq!(format_point_label(960.0, "elevation", "metric", 0), "960 M");
         assert_eq!(
-            format_point_label(960.0, "elevation", "imperial", 0),
+            format_point_label(960.0, "elevation", "metric", 0, false),
+            "960 M"
+        );
+        assert_eq!(
+            format_point_label(960.0, "elevation", "imperial", 0, false),
             "3150 FT"
         );
     }
 
     #[test]
     fn speed_temperature_and_decimals() {
-        assert_eq!(format_point_label(10.0, "speed", "metric", 0), "36 KM/H");
-        assert_eq!(format_point_label(10.0, "speed", "imperial", 0), "22 MPH");
         assert_eq!(
-            format_point_label(0.0, "temperature", "imperial", 0),
+            format_point_label(10.0, "speed", "metric", 0, false),
+            "36 KM/H"
+        );
+        assert_eq!(
+            format_point_label(10.0, "speed", "imperial", 0, false),
+            "22 MPH"
+        );
+        assert_eq!(
+            format_point_label(0.0, "temperature", "imperial", 0, false),
             "32 F"
         );
         assert_eq!(
-            format_point_label(959.74, "elevation", "metric", 1),
+            format_point_label(959.74, "elevation", "metric", 1, false),
             "959.7 M"
         );
     }
 
     #[test]
     fn unknown_attribute_echoes_unit_uppercased() {
-        assert_eq!(format_point_label(5.0, "power", "watts", 0), "5 WATTS");
+        assert_eq!(
+            format_point_label(5.0, "power", "watts", 0, false),
+            "5 WATTS"
+        );
     }
 
     #[test]
     fn precise_unit_tokens() {
-        assert_eq!(format_point_label(10.0, "speed", "kmh", 0), "36 KM/H");
-        assert_eq!(format_point_label(10.0, "speed", "mph", 0), "22 MPH");
-        assert_eq!(format_point_label(10.0, "speed", "ms", 0), "10 M/S");
-        assert_eq!(format_point_label(5000.0, "distance", "km", 0), "5 KM");
-        assert_eq!(format_point_label(5000.0, "distance", "m", 0), "5000 M");
-        assert_eq!(format_point_label(1609.34, "distance", "mi", 0), "1 MI");
-        assert_eq!(format_point_label(960.0, "elevation", "ft", 0), "3150 FT");
-        assert_eq!(format_point_label(0.0, "temperature", "f", 0), "32 F");
-        assert_eq!(format_point_label(20.0, "temperature", "c", 0), "20 C");
+        assert_eq!(
+            format_point_label(10.0, "speed", "kmh", 0, false),
+            "36 KM/H"
+        );
+        assert_eq!(format_point_label(10.0, "speed", "mph", 0, false), "22 MPH");
+        assert_eq!(format_point_label(10.0, "speed", "ms", 0, false), "10 M/S");
+        assert_eq!(
+            format_point_label(5000.0, "distance", "km", 0, false),
+            "5 KM"
+        );
+        assert_eq!(
+            format_point_label(5000.0, "distance", "m", 0, false),
+            "5000 M"
+        );
+        assert_eq!(
+            format_point_label(1609.34, "distance", "mi", 0, false),
+            "1 MI"
+        );
+        assert_eq!(
+            format_point_label(960.0, "elevation", "ft", 0, false),
+            "3150 FT"
+        );
+        assert_eq!(
+            format_point_label(0.0, "temperature", "f", 0, false),
+            "32 F"
+        );
+        assert_eq!(
+            format_point_label(20.0, "temperature", "c", 0, false),
+            "20 C"
+        );
+    }
+
+    /// Compact style drops the "/" in compound speed units for chart point
+    /// labels too; non-compound units are unaffected.
+    #[test]
+    fn compact_units_drop_the_slash() {
+        assert_eq!(format_point_label(10.0, "speed", "kmh", 0, true), "36 KMH");
+        assert_eq!(format_point_label(10.0, "speed", "ms", 0, true), "10 MS");
+        assert_eq!(format_point_label(10.0, "speed", "mph", 0, true), "22 MPH");
+        assert_eq!(
+            format_point_label(5000.0, "distance", "km", 0, true),
+            "5 KM"
+        );
     }
 }

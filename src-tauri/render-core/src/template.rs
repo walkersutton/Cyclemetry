@@ -58,6 +58,12 @@ pub struct SceneConfig {
     /// single toggle flips every unit-bearing readout. Elements with an explicit
     /// unit override the scene system.
     pub units: Option<String>,
+    /// App-wide compound-unit style: when `true`, drop the `/` separator so
+    /// compound speed units render compactly (`"km/h"`→`"kmh"`, `"m/s"`→`"ms"`);
+    /// units without a separator are unaffected. Injected from the editor's
+    /// Settings like `units`; a pre-pass (`Template::apply_compact_units`) fans
+    /// it out to value/plot readouts, and unit labels read it directly.
+    pub compact_units: Option<bool>,
     /// Rider weight in kg, used only to compute the `power_to_weight` (W/kg)
     /// metric at render time. `#[serde(skip)]` is deliberate and load-bearing:
     /// weight is sensitive personal data, so it must never be serialized into a
@@ -319,6 +325,9 @@ fn scale_anchor(anchor: &mut Option<AnchorConfig>, factor: f32) {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LabelConfig {
     pub id: String,
+    /// Defaults to empty so a `unit_of` label can omit static text —
+    /// `apply_unit_labels` fills it from the active unit system at load.
+    #[serde(default)]
     pub text: String,
     pub x: i32,
     pub y: i32,
@@ -336,6 +345,17 @@ pub struct LabelConfig {
     /// "middle" | "bottom". "middle" centers on cap height, which optically
     /// centers digits and stays stable as the text changes per frame.
     pub vertical_align: Option<String>,
+    /// When set to a metric attribute (`"speed"`, `"distance"`, `"elevation"`,
+    /// `"temperature"`), the label renders that metric's unit label under the
+    /// active unit system (e.g. "mph"→"km/h" when the scene flips to metric)
+    /// instead of `text`. `Template::apply_unit_labels` overwrites `text` from
+    /// this at load, so a standalone "mph"/"mi" caption tracks the settings
+    /// toggle rather than being frozen static text.
+    pub unit_of: Option<String>,
+    /// Explicit unit override for a `unit_of` label. Left unset, the label
+    /// follows `scene.units` (filled by `apply_scene_units`), matching the Auto
+    /// behaviour of value/meter/gauge elements.
+    pub unit: Option<String>,
     pub anchor: Option<AnchorConfig>,
 }
 
@@ -351,6 +371,9 @@ pub struct ValueConfig {
     pub color: Option<String>,
     pub opacity: Option<f32>,
     pub unit: Option<String>,
+    /// Compound-unit style for an "auto" suffix, filled from `scene.compact_units`
+    /// by `apply_compact_units` (see [`SceneConfig::compact_units`]).
+    pub compact_units: Option<bool>,
     /// Manual suffix text, used when `suffix_mode` is "custom" (or absent, for
     /// back-compat with templates authored before `suffix_mode` existed).
     pub suffix: Option<String>,
@@ -566,6 +589,9 @@ pub struct PointLabelConfig {
     pub x_offset: Option<f32>,
     pub y_offset: Option<f32>,
     pub units: Option<Vec<String>>,
+    /// Compound-unit style, filled from `scene.compact_units` by
+    /// `apply_compact_units` (see [`SceneConfig::compact_units`]).
+    pub compact_units: Option<bool>,
     pub decimal_rounding: Option<i32>,
 }
 
@@ -877,6 +903,8 @@ impl Template {
         }
 
         template.apply_scene_units();
+        template.apply_compact_units();
+        template.apply_unit_labels();
         template.resolve_anchors();
         Ok(template)
     }
@@ -896,6 +924,11 @@ impl Template {
                 Element::Value(c) => fill_scene_unit(&c.value, &mut c.unit, system),
                 Element::Meter(c) => fill_scene_unit(&c.value, &mut c.unit, system),
                 Element::Gauge(c) => fill_scene_unit(&c.value, &mut c.unit, system),
+                Element::Label(c) => {
+                    if let Some(metric) = &c.unit_of {
+                        fill_scene_unit(metric, &mut c.unit, system)
+                    }
+                }
                 Element::Plot(c) => {
                     if let Some(pl) = &mut c.point_label
                         && pl.units.is_none()
@@ -905,6 +938,47 @@ impl Template {
                     }
                 }
                 _ => {}
+            }
+        }
+    }
+
+    /// Fill the app-wide compound-unit style (`scene.compact_units`) into every
+    /// value readout and plot point label that hasn't set its own, so one toggle
+    /// flips "km/h"→"kmh" everywhere. Only "compact" needs filling; the default
+    /// (slash form) is `compact_unit`'s default already. Unit *labels* read the
+    /// scene flag directly in `apply_unit_labels`, so they aren't stamped here.
+    fn apply_compact_units(&mut self) {
+        if !self.scene.compact_units.unwrap_or(false) {
+            return;
+        }
+        for el in &mut self.elements {
+            match el {
+                Element::Value(c) => c.compact_units.get_or_insert(true),
+                Element::Plot(c) => match &mut c.point_label {
+                    Some(pl) => pl.compact_units.get_or_insert(true),
+                    None => continue,
+                },
+                _ => continue,
+            };
+        }
+    }
+
+    /// Resolve every unit-representing label (`label.unit_of`) into concrete
+    /// display text, so a standalone "mph"/"mi" caption tracks the unit system
+    /// instead of being frozen static text. Runs after `apply_scene_units` so
+    /// the label's `unit` reflects the scene toggle, and before `resolve_anchors`
+    /// so anchored siblings measure against the final text. A metric with no
+    /// natural unit label (time, gear) leaves the authored `text` untouched.
+    fn apply_unit_labels(&mut self) {
+        let compact = self.scene.compact_units.unwrap_or(false);
+        for el in &mut self.elements {
+            if let Element::Label(c) = el
+                && let Some(metric) = &c.unit_of
+            {
+                let base = crate::activity::unit_base_metric(metric);
+                if let Some(label) = crate::units::unit_label(base, c.unit.as_deref(), compact) {
+                    c.text = label;
+                }
             }
         }
     }
@@ -1023,6 +1097,93 @@ fn merge_scene_into_item(scene: &serde_json::Value, item: &mut serde_json::Value
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A `unit_of` label resolves to concrete unit text at load and follows
+    /// the scene unit system: metric default renders "km/h"/"km", and flipping
+    /// `scene.units` to imperial renders "mph"/"mi". Static-text labels and an
+    /// explicit per-label `unit` are left untouched.
+    #[test]
+    fn unit_of_labels_track_the_scene_unit_system() {
+        let template_json = |units: Option<&str>| {
+            let scene = match units {
+                Some(u) => serde_json::json!({ "width": 100, "height": 100, "units": u }),
+                None => serde_json::json!({ "width": 100, "height": 100 }),
+            };
+            serde_json::json!({
+                "scene": scene,
+                "elements": [
+                    { "type": "label", "id": "u-speed", "unit_of": "speed", "x": 0, "y": 0 },
+                    { "type": "label", "id": "u-dist", "unit_of": "distance", "x": 0, "y": 0 },
+                    // summary metric maps to its base (elevation)
+                    { "type": "label", "id": "u-gain", "unit_of": "running_elevation_gain", "x": 0, "y": 0 },
+                    // explicit unit overrides the scene system
+                    { "type": "label", "id": "u-fixed", "unit_of": "speed", "unit": "mph", "x": 0, "y": 0 },
+                    // plain static label is never rewritten
+                    { "type": "label", "id": "static", "text": "GO", "x": 0, "y": 0 }
+                ]
+            })
+        };
+        let text_of = |t: &Template, id: &str| -> String {
+            t.elements
+                .iter()
+                .find_map(|e| match e {
+                    Element::Label(c) if c.id == id => Some(c.text.clone()),
+                    _ => None,
+                })
+                .unwrap()
+        };
+
+        let metric = Template::from_value(template_json(None)).unwrap();
+        assert_eq!(text_of(&metric, "u-speed"), "km/h");
+        assert_eq!(text_of(&metric, "u-dist"), "km");
+        assert_eq!(text_of(&metric, "u-gain"), "m");
+        assert_eq!(text_of(&metric, "u-fixed"), "mph"); // explicit unit wins
+        assert_eq!(text_of(&metric, "static"), "GO"); // untouched
+
+        let imperial = Template::from_value(template_json(Some("imperial"))).unwrap();
+        assert_eq!(text_of(&imperial, "u-speed"), "mph");
+        assert_eq!(text_of(&imperial, "u-dist"), "mi");
+        assert_eq!(text_of(&imperial, "u-gain"), "ft");
+        assert_eq!(text_of(&imperial, "u-fixed"), "mph");
+        assert_eq!(text_of(&imperial, "static"), "GO");
+    }
+
+    /// `scene.compact_units` drops the "/" from compound speed units across
+    /// unit labels and value auto-suffixes; non-compound units are unaffected.
+    #[test]
+    fn compact_units_flip_compound_speed_units() {
+        let raw = serde_json::json!({
+            "scene": { "width": 100, "height": 100, "compact_units": true },
+            "elements": [
+                { "type": "label", "id": "u-speed", "unit_of": "speed", "x": 0, "y": 0 },
+                { "type": "label", "id": "u-dist", "unit_of": "distance", "x": 0, "y": 0 },
+                { "type": "value", "id": "v-speed", "value": "speed",
+                  "suffix_mode": "auto", "x": 0, "y": 0 },
+                { "type": "value", "id": "v-dist", "value": "distance",
+                  "suffix_mode": "auto", "x": 0, "y": 0 }
+            ]
+        });
+        let t = Template::from_value(raw).unwrap();
+        let label = |id: &str| {
+            t.elements
+                .iter()
+                .find_map(|e| match e {
+                    Element::Label(c) if c.id == id => Some(c.text.clone()),
+                    _ => None,
+                })
+                .unwrap()
+        };
+        // Labels: compound speed loses its slash, distance is untouched.
+        assert_eq!(label("u-speed"), "kmh");
+        assert_eq!(label("u-dist"), "km");
+        // Value auto-suffixes: the compact flag is stamped onto the value config
+        // so the suffix ("kmh") matches the label.
+        let v_speed = t.elements.iter().find_map(|e| match e {
+            Element::Value(c) if c.id == "v-speed" => Some(c),
+            _ => None,
+        });
+        assert_eq!(v_speed.unwrap().compact_units, Some(true));
+    }
 
     #[test]
     fn color_by_defaults_to_gradient_bands_sorted() {

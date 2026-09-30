@@ -1,0 +1,909 @@
+{
+  "elements": [
+    {
+      "color": "#ffffff",
+      "height": 4,
+      "id": "tick-tl-h",
+      "opacity": 0.28,
+      "type": "rect",
+      "width": 52,
+      "x": 44,
+      "y": 44
+    },
+    {
+      "color": "#ffffff",
+      "height": 52,
+      "id": "tick-tl-v",
+      "opacity": 0.28,
+      "type": "rect",
+      "width": 4,
+      "x": 44,
+      "y": 44
+    },
+    {
+      "color": "#ffffff",
+      "height": 4,
+      "id": "tick-tr-h",
+      "opacity": 0.28,
+      "type": "rect",
+      "width": 52,
+      "x": 3744,
+      "y": 44
+    },
+    {
+      "color": "#ffffff",
+      "height": 52,
+      "id": "tick-tr-v",
+      "opacity": 0.28,
+      "type": "rect",
+      "width": 4,
+      "x": 3792,
+      "y": 44
+    },
+    {
+      "color": "#ffffff",
+      "height": 4,
+      "id": "tick-bl-h",
+      "opacity": 0.28,
+      "type": "rect",
+      "width": 52,
+      "x": 44,
+      "y": 2112
+    },
+    {
+      "color": "#ffffff",
+      "height": 52,
+      "id": "tick-bl-v",
+      "opacity": 0.28,
+      "type": "rect",
+      "width": 4,
+      "x": 44,
+      "y": 2064
+    },
+    {
+      "color": "#ffffff",
+      "height": 4,
+      "id": "tick-br-h",
+      "opacity": 0.28,
+      "type": "rect",
+      "width": 52,
+      "x": 3744,
+      "y": 2112
+    },
+    {
+      "color": "#ffffff",
+      "height": 52,
+      "id": "tick-br-v",
+      "opacity": 0.28,
+      "type": "rect",
+      "width": 4,
+      "x": 3792,
+      "y": 2064
+    },
+    {
+      "background": "#ffffff",
+      "background_opacity": 0.14,
+      "color": "$accent",
+      "direction": "right",
+      "fill_opacity": 1,
+      "height": 10,
+      "id": "meter-progress",
+      "max": "max",
+      "min": "min",
+      "radius": 5,
+      "type": "meter",
+      "value": "distance",
+      "width": 546,
+      "x": 104,
+      "y": 105
+    },
+    {
+      "border_color": "$hairline",
+      "border_width": 2,
+      "color": "$panel",
+      "fill_opacity": 0.62,
+      "height": 56,
+      "id": "chip-wkg",
+      "type": "rect",
+      "width": 280,
+      "x": 104,
+      "y": 139
+    },
+    {
+      "color": "$muted",
+      "font_size": 22,
+      "id": "label-wkg",
+      "letter_spacing": 4,
+      "text": "W/KG",
+      "type": "label",
+      "vertical_align": "middle",
+      "x": 128,
+      "y": 168
+    },
+    {
+      "color": "$text",
+      "decimal_rounding": 1,
+      "font_size": 24,
+      "id": "value-wkg",
+      "tabular_figures": true,
+      "text_align": "right",
+      "type": "value",
+      "value": "power_to_weight",
+      "vertical_align": "middle",
+      "x": 360,
+      "y": 168
+    },
+    {
+      "border_color": "$hairline",
+      "border_width": 2,
+      "color": "$panel",
+      "fill_opacity": 0.62,
+      "height": 56,
+      "id": "chip-alt",
+      "type": "rect",
+      "width": 250,
+      "x": 400,
+      "y": 139
+    },
+    {
+      "color": "$green",
+      "height": 14,
+      "id": "alt-dot",
+      "radius": 7,
+      "type": "rect",
+      "width": 14,
+      "x": 426,
+      "y": 160
+    },
+    {
+      "color": "$muted",
+      "font_size": 22,
+      "id": "label-alt-chip",
+      "letter_spacing": 4,
+      "text": "ALT",
+      "type": "label",
+      "vertical_align": "middle",
+      "x": 458,
+      "y": 168
+    },
+    {
+      "color": "$text",
+      "decimal_rounding": 0,
+      "font_size": 24,
+      "id": "value-alt-chip",
+      "suffix_mode": "auto",
+      "tabular_figures": true,
+      "text_align": "right",
+      "type": "value",
+      "value": "elevation",
+      "vertical_align": "middle",
+      "x": 626,
+      "y": 168
+    },
+    {
+      "border_color": "$hairline",
+      "border_width": 2,
+      "color": "$panel",
+      "fill_opacity": 0.62,
+      "height": 360,
+      "id": "trace-panel",
+      "type": "rect",
+      "width": 560,
+      "x": 3176,
+      "y": 88
+    },
+    {
+      "color": "#ffffff",
+      "height": 2,
+      "id": "trace-divider",
+      "opacity": 0.1,
+      "type": "rect",
+      "width": 560,
+      "x": 3176,
+      "y": 148
+    },
+    {
+      "color": "$muted",
+      "font_size": 22,
+      "id": "label-trace",
+      "letter_spacing": 5,
+      "text": "TRACK TRACE",
+      "type": "label",
+      "vertical_align": "middle",
+      "x": 3204,
+      "y": 119
+    },
+    {
+      "color": "$accent",
+      "decimal_rounding": 1,
+      "font_size": 22,
+      "id": "value-trace-progress",
+      "suffix": " /",
+      "tabular_figures": true,
+      "text_align": "right",
+      "type": "value",
+      "value": "running_distance",
+      "vertical_align": "middle",
+      "x": 3618,
+      "y": 119
+    },
+    {
+      "color": "$muted",
+      "decimal_rounding": 1,
+      "font_size": 22,
+      "id": "value-trace-total",
+      "suffix_mode": "auto",
+      "tabular_figures": true,
+      "text_align": "right",
+      "type": "value",
+      "value": "total_distance",
+      "vertical_align": "middle",
+      "x": 3708,
+      "y": 119
+    },
+    {
+      "color": "$accent",
+      "fill": {
+        "opacity": 0
+      },
+      "height": 260,
+      "id": "plot-course",
+      "line": {
+        "future_opacity": 0.35,
+        "width": 6
+      },
+      "margin": 0.08,
+      "opacity": 0.85,
+      "point": {
+        "color": "#ffffff",
+        "edge_color": "$accent",
+        "edge_width": 5,
+        "weight": 500
+      },
+      "type": "plot",
+      "value": "course",
+      "width": 512,
+      "x": 3200,
+      "y": 168
+    },
+    {
+      "border_color": "$hairline",
+      "border_width": 2,
+      "color": "$panel",
+      "fill_opacity": 0.6,
+      "height": 280,
+      "id": "speed-panel",
+      "type": "rect",
+      "width": 460,
+      "x": 104,
+      "y": 1784
+    },
+    {
+      "color": "$accent",
+      "height": 280,
+      "id": "speed-accent",
+      "type": "rect",
+      "width": 8,
+      "x": 104,
+      "y": 1784
+    },
+    {
+      "color": "$muted",
+      "font_size": 24,
+      "id": "label-speed",
+      "letter_spacing": 7,
+      "text": "SPEED",
+      "type": "label",
+      "vertical_align": "top",
+      "x": 148,
+      "y": 1812
+    },
+    {
+      "color": "$text",
+      "decimal_rounding": 0,
+      "font": "BebasNeue-Regular.ttf",
+      "font_size": 236,
+      "id": "value-speed",
+      "tabular_figures": true,
+      "type": "value",
+      "value": "speed",
+      "vertical_align": "baseline",
+      "x": 148,
+      "y": 2036
+    },
+    {
+      "color": "$muted",
+      "font_size": 32,
+      "id": "label-mph",
+      "letter_spacing": 4,
+      "type": "label",
+      "unit_of": "speed",
+      "vertical_align": "baseline",
+      "x": 352,
+      "y": 2036
+    },
+    {
+      "border_color": "$hairline",
+      "border_width": 2,
+      "color": "$panel",
+      "fill_opacity": 0.6,
+      "height": 140,
+      "id": "cadence-panel",
+      "type": "rect",
+      "width": 264,
+      "x": 608,
+      "y": 1794
+    },
+    {
+      "color": "$muted",
+      "font_size": 22,
+      "id": "label-cadence",
+      "letter_spacing": 6,
+      "text": "CAD",
+      "text_align": "center",
+      "type": "label",
+      "vertical_align": "top",
+      "x": 740,
+      "y": 1818
+    },
+    {
+      "color": "$accent",
+      "decimal_rounding": 0,
+      "font": "BebasNeue-Regular.ttf",
+      "font_size": 92,
+      "id": "value-cadence",
+      "tabular_figures": true,
+      "text_align": "center",
+      "type": "value",
+      "value": "cadence",
+      "vertical_align": "baseline",
+      "x": 740,
+      "y": 1916
+    },
+    {
+      "border_color": "$hairline",
+      "border_width": 2,
+      "color": "$panel",
+      "fill_opacity": 0.6,
+      "height": 110,
+      "id": "power-bar-panel",
+      "type": "rect",
+      "width": 264,
+      "x": 608,
+      "y": 1954
+    },
+    {
+      "color": "$muted",
+      "font_size": 22,
+      "id": "label-power-bar",
+      "letter_spacing": 4,
+      "text": "PWR",
+      "type": "label",
+      "vertical_align": "middle",
+      "x": 630,
+      "y": 1984
+    },
+    {
+      "color": "$text",
+      "decimal_rounding": 0,
+      "font_size": 22,
+      "id": "value-power-bar",
+      "tabular_figures": true,
+      "text_align": "right",
+      "type": "value",
+      "value": "power",
+      "vertical_align": "middle",
+      "x": 850,
+      "y": 1984
+    },
+    {
+      "background": "#ffffff",
+      "background_opacity": 0.12,
+      "direction": "right",
+      "fill_opacity": 1,
+      "gap": 4,
+      "gradient": [
+        "$green",
+        "#f2c53d",
+        "$accent",
+        "$red"
+      ],
+      "height": 24,
+      "id": "meter-power",
+      "max": "max",
+      "min": 0,
+      "segments": 10,
+      "type": "meter",
+      "value": "power",
+      "width": 220,
+      "x": 630,
+      "y": 2010
+    },
+    {
+      "border_color": "$hairline",
+      "border_width": 2,
+      "color": "$panel",
+      "fill_opacity": 0.6,
+      "height": 208,
+      "id": "elev-panel",
+      "type": "rect",
+      "width": 1040,
+      "x": 1400,
+      "y": 1856
+    },
+    {
+      "color": "#ffffff",
+      "height": 2,
+      "id": "elev-divider",
+      "opacity": 0.1,
+      "type": "rect",
+      "width": 1040,
+      "x": 1400,
+      "y": 1916
+    },
+    {
+      "color": "$muted",
+      "font_size": 22,
+      "id": "label-elev-profile",
+      "letter_spacing": 5,
+      "text": "ELEVATION PROFILE",
+      "type": "label",
+      "vertical_align": "middle",
+      "x": 1432,
+      "y": 1887
+    },
+    {
+      "color": "$muted",
+      "font_size": 22,
+      "id": "label-alt",
+      "letter_spacing": 5,
+      "text": "ALT",
+      "type": "label",
+      "vertical_align": "middle",
+      "x": 2214,
+      "y": 1887
+    },
+    {
+      "color": "$text",
+      "decimal_rounding": 0,
+      "font_size": 22,
+      "id": "value-alt",
+      "suffix_mode": "auto",
+      "tabular_figures": true,
+      "text_align": "right",
+      "type": "value",
+      "value": "elevation",
+      "vertical_align": "middle",
+      "x": 2408,
+      "y": 1887
+    },
+    {
+      "color": "$accent",
+      "fill": {
+        "color": "$accent",
+        "opacity": 0.35
+      },
+      "height": 148,
+      "id": "plot-elevation",
+      "line": {
+        "width": 4
+      },
+      "margin": 0.05,
+      "point": {
+        "color": "#ffffff",
+        "remove_edge_color": true,
+        "weight": 260
+      },
+      "type": "plot",
+      "value": "elevation",
+      "width": 1040,
+      "x": 1400,
+      "y": 1916
+    },
+    {
+      "color": "$accent",
+      "height": 52,
+      "id": "grade-badge",
+      "type": "rect",
+      "width": 220,
+      "x": 1810,
+      "y": 1860
+    },
+    {
+      "color": "$dark",
+      "decimal_rounding": 0,
+      "font": "BebasNeue-Regular.ttf",
+      "font_size": 40,
+      "id": "value-grade",
+      "suffix": "% GRADE",
+      "tabular_figures": true,
+      "text_align": "center",
+      "type": "value",
+      "value": "gradient",
+      "vertical_align": "middle",
+      "x": 1920,
+      "y": 1886
+    },
+    {
+      "border_color": "$hairline",
+      "border_width": 2,
+      "color": "$panel",
+      "fill_opacity": 0.6,
+      "height": 114,
+      "id": "time-panel",
+      "type": "rect",
+      "width": 320,
+      "x": 3028,
+      "y": 1694
+    },
+    {
+      "color": "$muted",
+      "font_size": 22,
+      "id": "label-ride-time",
+      "letter_spacing": 5,
+      "text": "RIDE TIME",
+      "type": "label",
+      "vertical_align": "top",
+      "x": 3060,
+      "y": 1718
+    },
+    {
+      "color": "$text",
+      "font": "BebasNeue-Regular.ttf",
+      "font_size": 60,
+      "id": "value-ride-time",
+      "tabular_figures": true,
+      "time_format": "hh:mm:ss",
+      "type": "value",
+      "value": "time",
+      "vertical_align": "baseline",
+      "x": 3060,
+      "y": 1786
+    },
+    {
+      "border_color": "$hairline",
+      "border_width": 2,
+      "color": "$panel",
+      "fill_opacity": 0.6,
+      "height": 114,
+      "id": "distance-panel",
+      "type": "rect",
+      "width": 320,
+      "x": 3028,
+      "y": 1824
+    },
+    {
+      "color": "$muted",
+      "font_size": 22,
+      "id": "label-distance",
+      "letter_spacing": 5,
+      "text": "DISTANCE",
+      "type": "label",
+      "vertical_align": "top",
+      "x": 3060,
+      "y": 1848
+    },
+    {
+      "color": "$text",
+      "decimal_rounding": 1,
+      "font": "BebasNeue-Regular.ttf",
+      "font_size": 60,
+      "id": "value-distance",
+      "suffix_mode": "none",
+      "tabular_figures": true,
+      "type": "value",
+      "value": "distance",
+      "vertical_align": "baseline",
+      "x": 3060,
+      "y": 1916
+    },
+    {
+      "color": "$muted",
+      "font_size": 30,
+      "id": "label-mi",
+      "letter_spacing": 2,
+      "text_align": "right",
+      "type": "label",
+      "unit_of": "distance",
+      "vertical_align": "baseline",
+      "x": 3316,
+      "y": 1916
+    },
+    {
+      "border_color": "$hairline",
+      "border_width": 2,
+      "color": "$panel",
+      "fill_opacity": 0.6,
+      "height": 110,
+      "id": "gain-panel",
+      "type": "rect",
+      "width": 152,
+      "x": 3028,
+      "y": 1954
+    },
+    {
+      "color": "$muted",
+      "font_size": 20,
+      "id": "label-gain",
+      "letter_spacing": 4,
+      "text": "GAIN",
+      "text_align": "center",
+      "type": "label",
+      "vertical_align": "top",
+      "x": 3104,
+      "y": 1978
+    },
+    {
+      "color": "$text",
+      "decimal_rounding": 0,
+      "font": "BebasNeue-Regular.ttf",
+      "font_size": 52,
+      "id": "value-gain",
+      "tabular_figures": true,
+      "text_align": "center",
+      "type": "value",
+      "value": "running_elevation_gain",
+      "vertical_align": "baseline",
+      "x": 3104,
+      "y": 2040
+    },
+    {
+      "border_color": "$hairline",
+      "border_width": 2,
+      "color": "$panel",
+      "fill_opacity": 0.6,
+      "height": 110,
+      "id": "drop-panel",
+      "type": "rect",
+      "width": 152,
+      "x": 3196,
+      "y": 1954
+    },
+    {
+      "color": "$muted",
+      "font_size": 20,
+      "id": "label-drop",
+      "letter_spacing": 4,
+      "text": "DROP",
+      "text_align": "center",
+      "type": "label",
+      "vertical_align": "top",
+      "x": 3272,
+      "y": 1978
+    },
+    {
+      "color": "$text",
+      "decimal_rounding": 0,
+      "font": "BebasNeue-Regular.ttf",
+      "font_size": 52,
+      "id": "value-drop",
+      "tabular_figures": true,
+      "text_align": "center",
+      "type": "value",
+      "value": "running_elevation_loss",
+      "vertical_align": "baseline",
+      "x": 3272,
+      "y": 2040
+    },
+    {
+      "border_color": "$hairline",
+      "border_width": 2,
+      "color": "$panel",
+      "fill_opacity": 0.6,
+      "height": 324,
+      "id": "hr-panel",
+      "type": "rect",
+      "width": 356,
+      "x": 3380,
+      "y": 1740
+    },
+    {
+      "color": "$muted",
+      "font_size": 22,
+      "id": "label-hr",
+      "letter_spacing": 5,
+      "text": "HEART RATE",
+      "text_align": "center",
+      "type": "label",
+      "vertical_align": "top",
+      "x": 3558,
+      "y": 1768
+    },
+    {
+      "arc_color": "#ffffff24",
+      "arc_width": 14,
+      "cap_color": "#ffffff",
+      "cap_radius": 11,
+      "gradient": [
+        "$green",
+        "#f2c53d",
+        "$accent",
+        "$red"
+      ],
+      "height": 300,
+      "id": "gauge-hr",
+      "max": 200,
+      "min": 60,
+      "needle_width": 0,
+      "start_angle": 180,
+      "sweep_angle": 180,
+      "type": "gauge",
+      "value": "heartrate",
+      "width": 300,
+      "x": 3408,
+      "y": 1812
+    },
+    {
+      "color": "$text",
+      "decimal_rounding": 0,
+      "font": "BebasNeue-Regular.ttf",
+      "font_size": 68,
+      "id": "value-hr",
+      "tabular_figures": true,
+      "text_align": "right",
+      "type": "value",
+      "value": "heartrate",
+      "vertical_align": "baseline",
+      "x": 3570,
+      "y": 2040
+    },
+    {
+      "color": "$muted",
+      "font_size": 26,
+      "id": "label-bpm",
+      "letter_spacing": 3,
+      "text": "bpm",
+      "type": "label",
+      "vertical_align": "baseline",
+      "x": 3584,
+      "y": 2040
+    }
+  ],
+  "scene": {
+    "color": "$text",
+    "editor": {
+      "groups": [
+        {
+          "element_ids": [
+            "tick-tl-h",
+            "tick-tl-v",
+            "tick-tr-h",
+            "tick-tr-v",
+            "tick-bl-h",
+            "tick-bl-v",
+            "tick-br-h",
+            "tick-br-v"
+          ],
+          "id": "group-frame",
+          "name": "corner ticks"
+        },
+        {
+          "element_ids": [
+            "meter-progress"
+          ],
+          "id": "group-identity",
+          "name": "identity"
+        },
+        {
+          "element_ids": [
+            "chip-wkg",
+            "label-wkg",
+            "value-wkg",
+            "chip-alt",
+            "alt-dot",
+            "label-alt-chip",
+            "value-alt-chip"
+          ],
+          "id": "group-chips",
+          "name": "status chips"
+        },
+        {
+          "element_ids": [
+            "trace-panel",
+            "trace-divider",
+            "label-trace",
+            "value-trace-progress",
+            "value-trace-total",
+            "plot-course"
+          ],
+          "id": "group-trace",
+          "name": "track trace"
+        },
+        {
+          "element_ids": [
+            "speed-panel",
+            "speed-accent",
+            "label-speed",
+            "value-speed",
+            "label-mph"
+          ],
+          "id": "group-speed",
+          "name": "speed"
+        },
+        {
+          "element_ids": [
+            "cadence-panel",
+            "label-cadence",
+            "value-cadence"
+          ],
+          "id": "group-cadence",
+          "name": "cadence"
+        },
+        {
+          "element_ids": [
+            "power-bar-panel",
+            "label-power-bar",
+            "value-power-bar",
+            "meter-power"
+          ],
+          "id": "group-power-bar",
+          "name": "power bar"
+        },
+        {
+          "element_ids": [
+            "elev-panel",
+            "elev-divider",
+            "label-elev-profile",
+            "label-alt",
+            "value-alt",
+            "plot-elevation",
+            "grade-badge",
+            "value-grade"
+          ],
+          "id": "group-elevation",
+          "name": "elevation profile"
+        },
+        {
+          "element_ids": [
+            "time-panel",
+            "label-ride-time",
+            "value-ride-time",
+            "distance-panel",
+            "label-distance",
+            "value-distance",
+            "label-mi"
+          ],
+          "id": "group-stats",
+          "name": "ride stats"
+        },
+        {
+          "element_ids": [
+            "gain-panel",
+            "label-gain",
+            "value-gain",
+            "drop-panel",
+            "label-drop",
+            "value-drop"
+          ],
+          "id": "group-gain-drop",
+          "name": "gain / drop"
+        },
+        {
+          "element_ids": [
+            "hr-panel",
+            "label-hr",
+            "gauge-hr",
+            "value-hr",
+            "label-bpm"
+          ],
+          "id": "group-hr",
+          "name": "heart rate dial"
+        }
+      ]
+    },
+    "font": "rajdhani-bold.ttf",
+    "height": 2160,
+    "opacity": 1,
+    "vars": {
+      "accent": "#ff5a1f",
+      "dark": "#0b0f14",
+      "green": "#3de1ad",
+      "hairline": "#ffffff1f",
+      "muted": "#ffffff8c",
+      "panel": "#080a0c",
+      "red": "#e63946",
+      "text": "#f4f6f7"
+    },
+    "width": 3840
+  }
+}
