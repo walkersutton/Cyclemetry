@@ -16,17 +16,38 @@ function extractYouTubeId(url) {
   return null;
 }
 
+// YouTube entries derive their thumbnail from the video id; other platforms
+// (e.g. Instagram reels) have no public thumbnail URL, so the entry carries a
+// `thumbnail` path to a still committed under public/videos/.
+function thumbnailFor(video) {
+  return video.thumbnail ?? `https://img.youtube.com/vi/${video.id}/mqdefault.jpg`;
+}
+
 const videoGrid = videos.map((video) => (
   <div key={video.id} className="showcase-card">
-    <div className="showcase-card-video">
+    <div
+      className={`showcase-card-video${video.vertical ? " showcase-card-video-vertical" : ""}`}
+    >
       <a
         href={video.url}
         target="_blank"
         rel="noopener noreferrer"
         aria-label={`Watch ${video.title} by ${video.author}`}
       >
+        {/* Vertical videos keep the grid's 16:9 frame: the still is shown
+            whole in the middle over a blurred copy of itself. */}
+        {video.vertical && (
+          <img
+            className="showcase-thumb-backdrop"
+            src={thumbnailFor(video)}
+            alt=""
+            aria-hidden="true"
+            loading="lazy"
+          />
+        )}
         <img
-          src={`https://img.youtube.com/vi/${video.id}/mqdefault.jpg`}
+          className={video.vertical ? "showcase-thumb-vertical" : undefined}
+          src={thumbnailFor(video)}
           alt={`${video.title} by ${video.author}`}
           loading="lazy"
         />

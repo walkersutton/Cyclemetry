@@ -255,6 +255,21 @@ kbd {
   display: block;
 }
 
+/* Vertical (9:16) videos in the 16:9 frame: blurred fill behind, the full
+   still centered on top. */
+.showcase-card-video-vertical {
+  overflow: hidden;
+}
+
+.showcase-card-video img.showcase-thumb-backdrop {
+  filter: blur(18px) brightness(0.55);
+  transform: scale(1.15);
+}
+
+.showcase-card-video img.showcase-thumb-vertical {
+  object-fit: contain;
+}
+
 .showcase-play-icon {
   align-items: center;
   background: rgba(0, 0, 0, 0.72);
