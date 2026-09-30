@@ -114,6 +114,20 @@ export function createAppState() {
     Number.isFinite(storedRiderWeight) ? storedRiderWeight : null,
   )
   let riderWeightUnit = $state(localStorage.getItem('riderWeightUnit') ?? 'kg')
+  // Weight in kilograms for the renderer, or null when unset/invalid.
+  function resolvedRiderWeightKg() {
+    if (
+      riderWeight == null ||
+      !Number.isFinite(riderWeight) ||
+      riderWeight <= 0
+    )
+      return null
+    return riderWeightUnit === 'lb' ? riderWeight * 0.45359237 : riderWeight
+  }
+  // Whether the loaded template renders W/kg anywhere.
+  function templateUsesRiderWeight() {
+    return (config?.elements ?? []).some((e) => e.value === 'power_to_weight')
+  }
   // Unit system ("metric" | "imperial") for every readout left on Auto —
   // per-element unit overrides still win. An app-level preference like rider
   // weight: configured once in Settings, stored on this device, injected into
@@ -1509,13 +1523,17 @@ export function createAppState() {
     },
     // Weight resolved to kilograms for the renderer, or null when unset.
     get riderWeightKg() {
-      if (
-        riderWeight == null ||
-        !Number.isFinite(riderWeight) ||
-        riderWeight <= 0
-      )
-        return null
-      return riderWeightUnit === 'lb' ? riderWeight * 0.45359237 : riderWeight
+      return resolvedRiderWeightKg()
+    },
+    // True when the template renders W/kg anywhere — where the weight prompts
+    // belong, whether or not a weight is currently set.
+    get usesRiderWeight() {
+      return templateUsesRiderWeight()
+    },
+    // True when the template renders W/kg but no weight is set — every such
+    // readout comes out 0.0 until the user enters one, so callers prompt.
+    get needsRiderWeight() {
+      return resolvedRiderWeightKg() == null && templateUsesRiderWeight()
     },
     get outputWidth() {
       return outputWidth
