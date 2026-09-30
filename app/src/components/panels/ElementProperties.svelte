@@ -12,6 +12,7 @@
   import Switch from '../ui/Switch.svelte'
   import Tooltip from '../ui/Tooltip.svelte'
   import ColorInput from '../ui/ColorInput.svelte'
+  import RiderWeightPrompt from '../ui/RiderWeightPrompt.svelte'
   import AssetPicker from '../overlays/AssetPicker.svelte'
   import * as backend from '../../api/backend.js'
   import { defaultColorBands, elementMeta, elementTypeName, LAP_METRICS as ALL_LAP_METRICS, isLapMetric } from '../../lib/elementTypes.js'
@@ -1170,6 +1171,9 @@ Looks unrealistic for ${item.value} (expected ${issue.expected}). Enter a manual
           options={VALUE_METRIC_OPTIONS}
           onchange={(v) => update('value', v)}
         />
+        {#if item.value === 'power_to_weight'}
+          <RiderWeightPrompt />
+        {/if}
 
         {#if isSummaryMetric(item.value)}
         <label class="space-y-1 block">
@@ -1755,6 +1759,9 @@ Looks unrealistic for ${item.value} (expected ${issue.expected}). Enter a manual
           options={METER_METRICS.map((m) => ({ value: m, label: metricLabel(m) }))}
           onchange={(v) => update('value', v)}
         />
+        {#if item.value === 'power_to_weight'}
+          <RiderWeightPrompt />
+        {/if}
         {#if UNITS_BY_METRIC[item.value]}
         <label class="space-y-1 block">
           <span class="text-xs text-zinc-500">Unit</span>
@@ -2013,6 +2020,9 @@ Looks unrealistic for ${item.value} (expected ${issue.expected}). Enter a manual
           options={METER_METRICS.map((m) => ({ value: m, label: metricLabel(m) }))}
           onchange={(v) => update('value', v)}
         />
+        {#if item.value === 'power_to_weight'}
+          <RiderWeightPrompt />
+        {/if}
         {#if UNITS_BY_METRIC[item.value]}
         <label class="space-y-1 block">
           <span class="text-xs text-zinc-500">Unit</span>

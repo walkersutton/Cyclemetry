@@ -3,6 +3,7 @@
   import { TriangleAlert } from 'lucide-svelte'
   import WindowDragStrip from './WindowDragStrip.svelte'
   import Switch from '../ui/Switch.svelte'
+  import RiderWeightPrompt from '../ui/RiderWeightPrompt.svelte'
   import { formatFileSize } from '@/lib/utils.js'
 
   let {
@@ -22,6 +23,9 @@
     bytesFor = null,
     // Free bytes on the output volume, or null when unknown
     diskFreeBytes = null,
+    // True when the template renders W/kg — with no rider weight set those
+    // readouts export as 0, so offer the weight field before rendering.
+    usesRiderWeight = false,
     // (format) => boolean — true when the codec has no same-machine
     // measurement yet, so it offers a quick test render
     testAvailableFor = null,
@@ -60,6 +64,13 @@
   })
 
   function onKeydown(e) {
+    // Enter inside a field (the rider-weight prompt) edits, it doesn't render.
+    const t = e.target
+    if (
+      e.key === 'Enter' &&
+      (t?.tagName === 'INPUT' || t?.tagName === 'SELECT')
+    )
+      return
     if (e.key === 'Escape') {
       e.preventDefault()
       oncancel?.()
@@ -249,6 +260,15 @@
           resumes automatically when you free up space.
         </p>
       </div>
+    {/if}
+
+    <!-- W/kg with no rider weight: the export would bake in 0.0 for every such
+         readout, so collect the weight here rather than after the render. -->
+    {#if usesRiderWeight}
+      <RiderWeightPrompt
+        class="mt-4"
+        message="This template shows W/kg, but no rider weight is set — those readouts will export as 0."
+      />
     {/if}
 
     <div class="mt-4 flex justify-end gap-2">
