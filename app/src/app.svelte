@@ -728,6 +728,7 @@
       sizeFor={exportSizeEstimateFor}
       bytesFor={renderFileSizeBytesFor}
       diskFreeBytes={exportDiskFreeBytes}
+      usesRiderWeight={app.usesRiderWeight}
       testAvailableFor={exportTestAvailableFor}
       calibrating={app.calibratingFormat}
       oncalibrate={(fmt) => app.calibrateExportEstimate(fmt)}
@@ -786,13 +787,6 @@
     use:windowDrag
     class="h-[52px] shrink-0 bg-[var(--panel)] rounded-[10px] flex items-center gap-2 pr-3 pl-[88px] z-50"
   >
-    <!-- Logo chip -->
-    <span
-      class="w-5 h-5 shrink-0 rounded-md bg-primary text-[#050505] font-mono font-bold text-xs flex items-center justify-center select-none"
-      >C</span
-    >
-    <div class="h-5 w-px bg-white/[0.07] shrink-0"></div>
-
     <!-- ── Template toolbar ─────────────────────────────────────────────────── -->
     <div class="flex items-center gap-1 shrink-0">
       <!-- Template picker -->

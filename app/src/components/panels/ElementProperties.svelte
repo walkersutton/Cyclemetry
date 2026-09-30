@@ -29,6 +29,7 @@
   import Switch from '../ui/Switch.svelte'
   import Tooltip from '../ui/Tooltip.svelte'
   import ColorInput from '../ui/ColorInput.svelte'
+  import RiderWeightPrompt from '../ui/RiderWeightPrompt.svelte'
   import AssetPicker from '../overlays/AssetPicker.svelte'
   import * as backend from '../../api/backend.js'
   import {
@@ -196,6 +197,17 @@
     'temperature',
     'front_gear',
     'rear_gear',
+  ]
+  // Metrics a label can represent the *unit* of (those with a metric/imperial
+  // distinction, mirroring units::has_unit_system on the Rust side). Picking one
+  // makes the label render that unit (e.g. "mph"/"km/h") and track the settings
+  // toggle, instead of frozen static text.
+  const UNIT_OF_OPTIONS = [
+    { value: '', label: 'Off (static text)' },
+    { value: 'speed', label: 'Speed (mph / km/h)' },
+    { value: 'distance', label: 'Distance (mi / km)' },
+    { value: 'elevation', label: 'Elevation (ft / m)' },
+    { value: 'temperature', label: 'Temperature (°F / °C)' },
   ]
 
   function filterMetrics(list) {
@@ -543,6 +555,20 @@
   // scene system when it's left on Auto (unit unset).
   function effectiveUnit(metric, unit) {
     return unit == null ? sceneUnit(metric) : displayUnit(metric, unit)
+  }
+  // Human unit label for a `unit_of` label under the active setting, mirroring
+  // units::unit_label on the Rust side. Used only for the editor hint; the
+  // rendered text is resolved in Rust.
+  function effectiveUnitLabel(metric) {
+    const imperial = sceneUnitSystem() === 'imperial'
+    const label =
+      {
+        speed: imperial ? 'mph' : 'km/h',
+        distance: imperial ? 'mi' : 'km',
+        elevation: imperial ? 'ft' : 'm',
+        temperature: imperial ? '°F' : '°C',
+      }[metric] ?? ''
+    return app.compactUnits ? label.replace('/', '') : label
   }
   // Value shown in a unit picker: '' = Auto (inherit scene), else the concrete
   // token (legacy metric/imperial map onto their precise option).
@@ -1465,10 +1491,28 @@ Looks unrealistic for ${item.value} (expected ${issue.expected}). Enter a manual
       <!-- Text: all text properties in one place -->
       <section class="mb-4 space-y-2">
         <p class="text-[10px] uppercase tracking-wider text-zinc-600">Text</p>
-        <Input
-          value={item.text ?? ''}
-          oninput={(e) => update('text', e.target.value)}
-        />
+        {#if item.unit_of}
+          <p class="text-[11px] leading-relaxed text-zinc-500">
+            Shows the {UNIT_OF_OPTIONS.find((o) => o.value === item.unit_of)
+              ?.label.split(' ')[0]
+              .toLowerCase() ?? item.unit_of} unit (e.g. {effectiveUnitLabel(
+              item.unit_of,
+            )}) and follows your unit setting.
+          </p>
+        {:else}
+          <Input
+            value={item.text ?? ''}
+            oninput={(e) => update('text', e.target.value)}
+          />
+        {/if}
+        <label class="space-y-1 block">
+          <span class="text-xs text-zinc-500">Unit label</span>
+          <Select
+            value={item.unit_of ?? ''}
+            options={UNIT_OF_OPTIONS}
+            onchange={(v) => update('unit_of', v || undefined)}
+          />
+        </label>
         <label class="space-y-1 block">
           <span class="text-xs text-zinc-500">Font</span>
           <Select
@@ -1562,6 +1606,9 @@ Looks unrealistic for ${item.value} (expected ${issue.expected}). Enter a manual
           options={VALUE_METRIC_OPTIONS}
           onchange={(v) => update('value', v)}
         />
+        {#if item.value === 'power_to_weight'}
+          <RiderWeightPrompt />
+        {/if}
 
         {#if isSummaryMetric(item.value)}
           <label class="space-y-1 block">
@@ -2530,6 +2577,9 @@ Looks unrealistic for ${item.value} (expected ${issue.expected}). Enter a manual
           }))}
           onchange={(v) => update('value', v)}
         />
+        {#if item.value === 'power_to_weight'}
+          <RiderWeightPrompt />
+        {/if}
         {#if UNITS_BY_METRIC[item.value]}
           <label class="space-y-1 block">
             <span class="text-xs text-zinc-500">Unit</span>
@@ -2953,6 +3003,9 @@ Looks unrealistic for ${item.value} (expected ${issue.expected}). Enter a manual
           }))}
           onchange={(v) => update('value', v)}
         />
+        {#if item.value === 'power_to_weight'}
+          <RiderWeightPrompt />
+        {/if}
         {#if UNITS_BY_METRIC[item.value]}
           <label class="space-y-1 block">
             <span class="text-xs text-zinc-500">Unit</span>

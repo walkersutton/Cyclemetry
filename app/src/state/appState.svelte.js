@@ -114,6 +114,20 @@ export function createAppState() {
     Number.isFinite(storedRiderWeight) ? storedRiderWeight : null,
   )
   let riderWeightUnit = $state(localStorage.getItem('riderWeightUnit') ?? 'kg')
+  // Weight in kilograms for the renderer, or null when unset/invalid.
+  function resolvedRiderWeightKg() {
+    if (
+      riderWeight == null ||
+      !Number.isFinite(riderWeight) ||
+      riderWeight <= 0
+    )
+      return null
+    return riderWeightUnit === 'lb' ? riderWeight * 0.45359237 : riderWeight
+  }
+  // Whether the loaded template renders W/kg anywhere.
+  function templateUsesRiderWeight() {
+    return (config?.elements ?? []).some((e) => e.value === 'power_to_weight')
+  }
   // Unit system ("metric" | "imperial") for every readout left on Auto —
   // per-element unit overrides still win. An app-level preference like rider
   // weight: configured once in Settings, stored on this device, injected into
@@ -123,6 +137,13 @@ export function createAppState() {
   let units = $state(
     localStorage.getItem('units') ??
       (_persisted?.scene?.units === 'imperial' ? 'imperial' : 'metric'),
+  )
+  // Compound-unit style for compound speed units: false → "km/h" (default),
+  // true → "kmh". App-level like `units`: stored on this device, injected into
+  // scene.compact_units at render, never saved into the template.
+  let compactUnits = $state(
+    (localStorage.getItem('compactUnits') ??
+      String(_persisted?.scene?.compact_units === true)) === 'true',
   )
   let outputDir = $state(localStorage.getItem('outputDir') ?? null)
   let defaultOutputDir = $state(null)
@@ -235,6 +256,9 @@ export function createAppState() {
   })
   $effect(() => {
     localStorage.setItem('units', units)
+  })
+  $effect(() => {
+    localStorage.setItem('compactUnits', String(compactUnits))
   })
   $effect(() => {
     localStorage.setItem('outputWidth', String(outputWidth))
@@ -643,7 +667,9 @@ export function createAppState() {
   // to every element left on Auto; rider weight rides as a separate render
   // argument (riderWeightKg).
   function withAppSettings(cfg) {
-    return cfg ? { ...cfg, scene: { ...cfg.scene, units } } : cfg
+    return cfg
+      ? { ...cfg, scene: { ...cfg.scene, units, compact_units: compactUnits } }
+      : cfg
   }
 
   function updateScene(updates) {
@@ -840,11 +866,16 @@ export function createAppState() {
       return base
     })
 
-    // units moved to an app-level preference (see `units` state) — strip the
-    // legacy scene field so it never rides in saved templates again.
+    // units and compact_units moved to app-level preferences (see `units` /
+    // `compactUnits` state) — strip the scene fields so they never ride in
+    // saved templates again.
     const sceneBase = Object.fromEntries(
       Object.entries(config.scene ?? {}).filter(
-        ([k]) => k !== 'editor' && k !== 'groups' && k !== 'units',
+        ([k]) =>
+          k !== 'editor' &&
+          k !== 'groups' &&
+          k !== 'units' &&
+          k !== 'compact_units',
       ),
     )
     return { ...config, scene: { ...sceneBase, groups }, elements }
@@ -1489,6 +1520,14 @@ export function createAppState() {
     set units(v) {
       units = v === 'imperial' ? 'imperial' : 'metric'
     },
+    // Compact compound-unit style ("km/h" vs "kmh"); app-level, injected into
+    // scene.compact_units, never saved to templates.
+    get compactUnits() {
+      return compactUnits
+    },
+    set compactUnits(v) {
+      compactUnits = v === true || v === 'true' || v === 'compact'
+    },
     // Config with app-level settings (unit system) injected — what every
     // render/preview call sends; template saves keep using `config`.
     get renderConfig() {
@@ -1509,13 +1548,17 @@ export function createAppState() {
     },
     // Weight resolved to kilograms for the renderer, or null when unset.
     get riderWeightKg() {
-      if (
-        riderWeight == null ||
-        !Number.isFinite(riderWeight) ||
-        riderWeight <= 0
-      )
-        return null
-      return riderWeightUnit === 'lb' ? riderWeight * 0.45359237 : riderWeight
+      return resolvedRiderWeightKg()
+    },
+    // True when the template renders W/kg anywhere — where the weight prompts
+    // belong, whether or not a weight is currently set.
+    get usesRiderWeight() {
+      return templateUsesRiderWeight()
+    },
+    // True when the template renders W/kg but no weight is set — every such
+    // readout comes out 0.0 until the user enters one, so callers prompt.
+    get needsRiderWeight() {
+      return resolvedRiderWeightKg() == null && templateUsesRiderWeight()
     },
     get outputWidth() {
       return outputWidth

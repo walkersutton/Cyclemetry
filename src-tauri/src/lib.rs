@@ -1551,6 +1551,7 @@ async fn backend_activity_distance_info(
         vars: std::collections::HashMap::new(),
         rider_weight_kg: None,
         units: None,
+        compact_units: None,
         lap_gate: None,
     };
     let activity = activity.sample_for_scene(&scene, synthetic)?;
@@ -1613,6 +1614,7 @@ async fn backend_activity_metric_range(
         vars: std::collections::HashMap::new(),
         rider_weight_kg: None,
         units: None,
+        compact_units: None,
         lap_gate: None,
     };
     let activity = activity.sample_for_scene(&scene, synthetic)?;

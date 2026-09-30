@@ -1893,6 +1893,7 @@ fn resolve_suffix(cfg: &ValueConfig) -> Option<String> {
         Some("auto") => {
             let unit_attr = unit_base_metric(&cfg.value);
             units::display_suffix(unit_attr, cfg.unit.as_deref())
+                .map(|s| units::compact_unit(&s, cfg.compact_units.unwrap_or(false)))
         }
         _ => cfg.suffix.clone().filter(|s| !s.is_empty()),
     }

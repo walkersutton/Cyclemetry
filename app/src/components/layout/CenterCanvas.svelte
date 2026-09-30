@@ -9,6 +9,7 @@
   import VideoBackdrop from '../canvas/VideoBackdrop.svelte'
   import WysiwygLayer from '../canvas/WysiwygLayer.svelte'
   import PlaybackControls from '../canvas/PlaybackControls.svelte'
+  import RiderWeightPrompt from '../ui/RiderWeightPrompt.svelte'
   import VideoAlignmentBar from '../canvas/VideoAlignmentBar.svelte'
   import { videoStartOnAxis } from '@/lib/videoAlignment.js'
   import { isLapMetric } from '@/lib/elementTypes.js'
@@ -253,6 +254,7 @@
     const _hasActivity = app.hasActivity
     void app.gpxFilename // reactive dep: re-run when GPX changes
     void app.units // reactive dep: the unit-system preference flips readouts
+    void app.compactUnits // reactive dep: the km/h↔kmh style flips readouts
     void previewW // reactive dep: re-render when the base target size changes
     void previewH // (export resolution, preview box size, or display pixel ratio)
 
@@ -861,11 +863,31 @@
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div
     bind:this={clipEl}
-    class="flex-1 flex items-center justify-center p-6 overflow-hidden"
+    class="relative flex-1 flex items-center justify-center p-6 overflow-hidden"
     style="background: radial-gradient(120% 90% at 50% 0%, rgba(220, 20, 60, 0.09), transparent 58%);"
     onwheel={onCanvasWheel}
     ondblclick={resetZoom}
   >
+    <!-- Missing rider weight — every W/kg readout in the preview is sitting at
+         0, which is easy to miss when nothing is selected. It floats over the
+         canvas rather than sitting above it: taking up layout space would push
+         the preview down while it's shown and let it snap back when it goes. -->
+    {#if app.usesRiderWeight && app.hasActivity}
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div
+        class="pointer-events-none absolute inset-x-3 top-3 z-20 flex justify-center"
+        ondblclick={(e) => e.stopPropagation()}
+        onwheel={(e) => e.stopPropagation()}
+      >
+        <RiderWeightPrompt
+          compact
+          floating
+          class="pointer-events-auto w-full max-w-2xl"
+          message="W/kg is showing 0 — enter your rider weight to see real numbers."
+        />
+      </div>
+    {/if}
+
     {#if app.config && app.hasActivity}
       <!-- Aspect-ratio wrapper — always shown when a template is loaded -->
       <div

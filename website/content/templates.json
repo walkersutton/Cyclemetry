@@ -22,6 +22,14 @@
     "jsonUrl": "https://raw.githubusercontent.com/walkersutton/cyclemetry/main/templates/crit/crit.json"
   },
   {
+    "name": "enduro_hud",
+    "displayName": "Enduro HUD",
+    "design": null,
+    "previewUrl": "/templates/enduro_hud/preview.jpg",
+    "githubUrl": "https://github.com/walkersutton/cyclemetry/tree/main/templates/enduro_hud",
+    "jsonUrl": "https://raw.githubusercontent.com/walkersutton/cyclemetry/main/templates/enduro_hud/enduro_hud.json"
+  },
+  {
     "name": "jeff",
     "displayName": "Jeff",
     "design": {

@@ -125,6 +125,31 @@ pub fn has_unit_system(attr: &str) -> bool {
     )
 }
 
+/// Render a unit string in the app's compound-unit style. With `compact` set,
+/// drop the `/` separator that only compound units carry (`"km/h"`→`"kmh"`,
+/// `"m/s"`→`"ms"`); every other unit (`"mph"`, `"mi"`, `"ft"`, `"%"`, `"W"`,
+/// `"°C"`, …) has no separator and passes through unchanged. Driven by the
+/// app-wide `scene.compact_units` preference.
+pub fn compact_unit(s: &str, compact: bool) -> String {
+    if compact {
+        s.replace('/', "")
+    } else {
+        s.to_string()
+    }
+}
+
+/// Standalone unit label for a metric under the active unit system, cased the
+/// way a rider reads it in an overlay and *without* the leading space
+/// [`display_suffix`] carries (`"mph"`, `"km/h"`, `"mi"`, `"ft"`, `"°C"`,
+/// `"%"`, `"W"`). `compact` applies the [`compact_unit`] style. Used by
+/// unit-representing labels (`label.unit_of`) so a standalone "mph"/"mi"
+/// caption tracks the settings toggle instead of being frozen static text.
+/// Returns `None` for metrics with no natural unit label (time, gear) — the
+/// caller leaves such a label's text untouched.
+pub fn unit_label(attr: &str, unit: Option<&str>, compact: bool) -> Option<String> {
+    display_suffix(attr, unit).map(|s| compact_unit(s.trim_start(), compact))
+}
+
 /// Convert a display-unit distance target back to metres (used by the
 /// "until_custom" distance-reference mode). Inverse of the distance branch of
 /// [`resolve`]; distance has no offset so this is a plain divide.

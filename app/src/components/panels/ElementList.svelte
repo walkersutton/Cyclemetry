@@ -17,6 +17,7 @@
     Square,
     Thermometer,
     Trash2,
+    TriangleAlert,
     Type,
     X,
   } from 'lucide-svelte'
@@ -27,6 +28,11 @@
   import AssetPicker from '../overlays/AssetPicker.svelte'
 
   const app = getContext('app')
+
+  // W/kg with no rider weight renders 0 — flag those rows so the problem shows
+  // up in the list, not just in the selected element's properties.
+  const missingRiderWeight = (metric) =>
+    metric === 'power_to_weight' && app.riderWeightKg == null
 
   let addImagePending = $state(false)
 
@@ -68,6 +74,7 @@
         type: meta.kind,
         name: meta.name,
         unit: meta.unit,
+        metric: el.value,
       }
     }
     return [...(app.elementLayerOrder ?? [])]
@@ -678,6 +685,14 @@
                           >{el.unit === 'imperial' ? 'imp' : el.unit}</span
                         >
                       {/if}
+                      {#if missingRiderWeight(el.metric)}
+                        <span
+                          class="shrink-0 text-[var(--ds-warning)]"
+                          title="Rider weight not set — this W/kg readout renders as 0"
+                        >
+                          <TriangleAlert size={11} />
+                        </span>
+                      {/if}
                     </button>
                     <div
                       class="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover/el:opacity-100 transition-opacity"
@@ -761,6 +776,14 @@
                   class="shrink-0 text-[9px] font-medium px-1 py-0.5 rounded bg-[var(--panel3)] text-[var(--dim)] uppercase tracking-wide"
                   >{el.unit === 'imperial' ? 'imp' : el.unit}</span
                 >
+              {/if}
+              {#if missingRiderWeight(el.metric)}
+                <span
+                  class="shrink-0 text-[var(--ds-warning)]"
+                  title="Rider weight not set — this W/kg readout renders as 0"
+                >
+                  <TriangleAlert size={11} />
+                </span>
               {/if}
             </button>
             <div

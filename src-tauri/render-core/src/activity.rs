@@ -2149,6 +2149,7 @@ mod tests {
             groups: Vec::new(),
             vars: std::collections::HashMap::new(),
             units: None,
+            compact_units: None,
         }
     }
 

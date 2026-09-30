@@ -4,6 +4,7 @@
   import { X } from 'lucide-svelte'
   import { formatHomePath } from '../../lib/utils.js'
   import Select from '../ui/Select.svelte'
+  import RiderWeightField from '../ui/RiderWeightField.svelte'
 
   const app = getContext('app')
 
@@ -77,6 +78,17 @@
           ]}
           onchange={(v) => (app.units = v)}
         />
+        <p class="text-[11px] text-zinc-500">
+          Speed unit style — how compound speed units are written.
+        </p>
+        <Select
+          value={app.compactUnits ? 'compact' : 'slash'}
+          options={[
+            { value: 'slash', label: 'km/h' },
+            { value: 'compact', label: 'kmh' },
+          ]}
+          onchange={(v) => (app.compactUnits = v === 'compact')}
+        />
       </div>
 
       <!-- Rider weight — powers the W/kg metric. Stored on this device only and
@@ -91,29 +103,7 @@
           Used only for the W/kg metric. Stored on this device — never saved to
           templates.
         </p>
-        <div class="flex items-center gap-1.5">
-          <input
-            type="number"
-            min="0"
-            step="0.1"
-            inputmode="decimal"
-            placeholder="—"
-            value={app.riderWeight ?? ''}
-            oninput={(e) => (app.riderWeight = e.target.value)}
-            class="min-w-0 flex-1 h-7 rounded-[6px] border-0 bg-[var(--panel2)] px-2 text-xs
-                   text-foreground font-mono focus:outline-none focus:ring-1 focus:ring-ring"
-          />
-          <div class="shrink-0 w-20">
-            <Select
-              value={app.riderWeightUnit}
-              options={[
-                { value: 'kg', label: 'kg' },
-                { value: 'lb', label: 'lb' },
-              ]}
-              onchange={(v) => (app.riderWeightUnit = v)}
-            />
-          </div>
-        </div>
+        <RiderWeightField />
       </div>
 
       <!-- Output folder -->
