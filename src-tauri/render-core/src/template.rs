@@ -880,6 +880,7 @@ impl Template {
         let scene_snapshot = raw["scene"].clone();
         if let Some(items) = raw.get_mut("elements").and_then(|v| v.as_array_mut()) {
             for item in items.iter_mut() {
+                migrate_custom_calories(item);
                 merge_scene_into_item(&scene_snapshot, item);
             }
         }
@@ -1086,6 +1087,20 @@ fn fill_scene_unit(metric: &str, unit: &mut Option<String>, system: &str) {
     }
 }
 
+fn migrate_custom_calories(item: &mut serde_json::Value) {
+    if let Some(obj) = item.as_object_mut() {
+        for key in ["value", "bottom_value", "unit_of"] {
+            if let Some(v) = obj.get(key).and_then(|val| val.as_str()) {
+                if v == "custom:calories" {
+                    obj.insert(key.to_string(), serde_json::json!("calories"));
+                } else if v == "custom:total_calories" {
+                    obj.insert(key.to_string(), serde_json::json!("total_calories"));
+                }
+            }
+        }
+    }
+}
+
 fn merge_scene_into_item(scene: &serde_json::Value, item: &mut serde_json::Value) {
     if let (Some(scene_obj), Some(item_obj)) = (scene.as_object(), item.as_object_mut()) {
         for (k, v) in scene_obj {
@@ -1258,5 +1273,38 @@ mod tests {
         let plot = plot.expect("flyover has a course plot");
         assert_eq!(plot.value, "course");
         assert_eq!(plot.line.as_ref().and_then(|l| l.future_opacity), Some(0.0));
+    }
+
+    #[test]
+    fn migrates_legacy_custom_calories_to_builtin() {
+        let json = serde_json::json!({
+            "scene": { "width": 1920, "height": 1080 },
+            "elements": [
+                { "type": "value", "id": "v1", "x": 10, "y": 20, "value": "custom:calories" },
+                { "type": "value", "id": "v2", "x": 10, "y": 40, "value": "custom:total_calories" },
+                { "type": "label", "id": "l1", "x": 10, "y": 60, "unit_of": "custom:calories" },
+                { "type": "plot", "id": "p1", "x": 0, "y": 0, "width": 100, "height": 100, "value": "custom:calories", "bottom_value": "custom:total_calories" }
+            ]
+        });
+        let template = Template::from_value(json).expect("template parses");
+        match &template.elements[0] {
+            Element::Value(c) => assert_eq!(c.value, "calories"),
+            _ => panic!("expected Value"),
+        }
+        match &template.elements[1] {
+            Element::Value(c) => assert_eq!(c.value, "total_calories"),
+            _ => panic!("expected Value"),
+        }
+        match &template.elements[2] {
+            Element::Label(c) => assert_eq!(c.unit_of.as_deref(), Some("calories")),
+            _ => panic!("expected Label"),
+        }
+        match &template.elements[3] {
+            Element::Plot(c) => {
+                assert_eq!(c.value, "calories");
+                assert_eq!(c.bottom_value.as_deref(), Some("total_calories"));
+            }
+            _ => panic!("expected Plot"),
+        }
     }
 }

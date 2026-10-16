@@ -53,7 +53,7 @@ Each element needs a unique "id" (e.g. "value-0"), a "type", and "x"/"y". Elemen
 - rect: rectangle. fields: width, height, color, fill_opacity, opacity, radius, border_color, border_width
 - image: static asset. fields: file (filename), width, height, opacity
 
-Metric names usable in "value": "speed", "power", "heartrate", "cadence", "distance", "elevation", "gradient", "temperature", "time", and "course" (the GPS route, plot only).
+Metric names usable in "value": "speed", "power", "heartrate", "cadence", "distance", "elevation", "gradient", "temperature", "time", "calories", "total_calories", and "course" (the GPS route, plot only).
 
 Use scene.color/font_size as shared defaults; elements inherit them unless they override. Numbers must be numbers, not strings (except min/max may be "min"/"max").`
 

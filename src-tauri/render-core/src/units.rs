@@ -6,9 +6,9 @@
 //! and suffix never drift between code paths.
 
 use crate::activity::{
-    ATTR_CADENCE, ATTR_DISTANCE, ATTR_ELEVATION, ATTR_GRADIENT, ATTR_HEARTRATE, ATTR_POWER,
-    ATTR_POWER_TO_WEIGHT, ATTR_SPEED, ATTR_TEMPERATURE, FT_CONVERSION, KMH_CONVERSION,
-    MI_CONVERSION, MPH_CONVERSION,
+    ATTR_CADENCE, ATTR_CALORIES, ATTR_DISTANCE, ATTR_ELEVATION, ATTR_GRADIENT, ATTR_HEARTRATE,
+    ATTR_POWER, ATTR_POWER_TO_WEIGHT, ATTR_SPEED, ATTR_TEMPERATURE, FT_CONVERSION,
+    KMH_CONVERSION, MI_CONVERSION, MPH_CONVERSION,
 };
 
 /// Affine conversion from a GPX-native value to a display value:
@@ -71,6 +71,7 @@ pub fn resolve(attr: &str, unit: Option<&str>) -> (Conversion, String) {
             ),
             _ => (Conversion::IDENTITY, "C".into()), // c / metric / default
         },
+        ATTR_CALORIES => (Conversion::IDENTITY, "KCAL".into()),
         _ => (Conversion::IDENTITY, u.to_uppercase()),
     }
 }
@@ -108,6 +109,7 @@ pub fn display_suffix(attr: &str, unit: Option<&str>) -> Option<String> {
         ATTR_POWER_TO_WEIGHT => " W/kg",
         ATTR_HEARTRATE => " bpm",
         ATTR_CADENCE => " rpm",
+        ATTR_CALORIES => " kcal",
         ATTR_GRADIENT => "%",
         _ => return None,
     };
@@ -223,6 +225,8 @@ mod tests {
             display_suffix(ATTR_HEARTRATE, None).as_deref(),
             Some(" bpm")
         );
+        assert_eq!(display_suffix(ATTR_CALORIES, None).as_deref(), Some(" kcal"));
+        assert_eq!(unit_label(ATTR_CALORIES, None, false).as_deref(), Some("kcal"));
         assert_eq!(display_suffix(ATTR_GRADIENT, None).as_deref(), Some("%"));
         // Metrics with no natural unit label yield nothing.
         assert_eq!(display_suffix("time", None), None);

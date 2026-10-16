@@ -851,19 +851,56 @@ export function createAppState() {
       const withoutLocked = Object.fromEntries(
         Object.entries(withoutBbox).filter(([k]) => k !== 'locked'),
       )
-      const base = isLocked ? { ...withoutLocked, locked: true } : withoutLocked
-      // Migrate legacy points: [{...}] → point: {...} for plot elements.
+      let current = isLocked
+        ? { ...withoutLocked, locked: true }
+        : withoutLocked
+      // Migrate legacy points: [{...}] -> point: {...} for plot elements.
       // Only the first entry is ever used; the array form was pure nesting noise.
       if (
-        base.type === 'plot' &&
-        Array.isArray(base.points) &&
-        base.points.length > 0
+        current.type === 'plot' &&
+        Array.isArray(current.points) &&
+        current.points.length > 0
       ) {
         // eslint-disable-next-line no-unused-vars
-        const { points: _pts, ...rest } = base
-        return { ...rest, point: base.point ?? base.points[0] }
+        const { points: _pts, ...rest } = current
+        current = { ...rest, point: current.point ?? current.points[0] }
       }
-      return base
+      // Migrate legacy custom:calories and custom:total_calories to built-in metrics
+      if (
+        current.value === 'custom:calories' ||
+        current.value === 'custom:total_calories'
+      ) {
+        current = {
+          ...current,
+          value:
+            current.value === 'custom:calories' ? 'calories' : 'total_calories',
+        }
+      }
+      if (
+        current.bottom_value === 'custom:calories' ||
+        current.bottom_value === 'custom:total_calories'
+      ) {
+        current = {
+          ...current,
+          bottom_value:
+            current.bottom_value === 'custom:calories'
+              ? 'calories'
+              : 'total_calories',
+        }
+      }
+      if (
+        current.unit_of === 'custom:calories' ||
+        current.unit_of === 'custom:total_calories'
+      ) {
+        current = {
+          ...current,
+          unit_of:
+            current.unit_of === 'custom:calories'
+              ? 'calories'
+              : 'total_calories',
+        }
+      }
+      return current
     })
 
     // units and compact_units moved to app-level preferences (see `units` /

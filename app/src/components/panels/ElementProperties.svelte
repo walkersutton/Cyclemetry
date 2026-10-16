@@ -76,6 +76,7 @@
     'gradient',
     'lean',
     'temperature',
+    'calories',
     'gear',
     'front_gear',
     'rear_gear',
@@ -89,6 +90,7 @@
   const SUMMARY_BASE = {
     total_distance: 'distance',
     total_time: 'time',
+    total_calories: 'calories',
     elevation_gain: 'elevation',
     elevation_loss: 'elevation',
     max_elevation: 'elevation',
@@ -152,6 +154,7 @@
     power_to_weight: 'W/kg',
     total_distance: 'Total distance',
     total_time: 'Total time',
+    total_calories: 'Total calories',
     elevation_gain: 'Elevation gain',
     elevation_loss: 'Elevation loss',
     max_elevation: 'Max elevation',
@@ -170,6 +173,7 @@
     lap: 'Current lap',
     laps_to_go: 'Laps to go',
     lap_fraction: 'Lap count (2/20)',
+    calories: 'Calories',
   }
   const metricLabel = (m) =>
     METRIC_LABELS[m] ?? (isCustomMetric(m) ? customMetricLabel(m) : m)
@@ -181,6 +185,7 @@
     'cadence',
     'gradient',
     'temperature',
+    'calories',
     'front_gear',
     'rear_gear',
     'course',
@@ -195,6 +200,7 @@
     'cadence',
     'gradient',
     'temperature',
+    'calories',
     'front_gear',
     'rear_gear',
   ]
