@@ -854,16 +854,24 @@ export function createAppState() {
       const base = isLocked ? { ...withoutLocked, locked: true } : withoutLocked
       // Migrate legacy points: [{...}] → point: {...} for plot elements.
       // Only the first entry is ever used; the array form was pure nesting noise.
+      let plotBase = base
       if (
-        base.type === 'plot' &&
-        Array.isArray(base.points) &&
-        base.points.length > 0
+        plotBase.type === 'plot' &&
+        Array.isArray(plotBase.points) &&
+        plotBase.points.length > 0
       ) {
         // eslint-disable-next-line no-unused-vars
-        const { points: _pts, ...rest } = base
-        return { ...rest, point: base.point ?? base.points[0] }
+        const { points: _pts, ...rest } = plotBase
+        plotBase = { ...rest, point: plotBase.point ?? plotBase.points[0] }
       }
-      return base
+      // Strip irrelevant fill and point_label from course plots (GPS maps
+      // have no area under curve and coordinates are not scalar metrics).
+      if (plotBase.type === 'plot' && plotBase.value === 'course') {
+        // eslint-disable-next-line no-unused-vars
+        const { fill: _fill, point_label: _pl, ...rest } = plotBase
+        return rest
+      }
+      return plotBase
     })
 
     // units and compact_units moved to app-level preferences (see `units` /

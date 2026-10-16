@@ -799,17 +799,39 @@ impl PlotConfig {
             .unwrap_or_else(|| "#ffffff".to_string())
     }
 
+    pub fn is_course(&self) -> bool {
+        self.value == "course"
+    }
+
+    /// Course plots (GPS maps) have no area under a curve, so fill is not applicable.
+    pub fn effective_fill(&self) -> Option<&FillConfig> {
+        if self.is_course() {
+            None
+        } else {
+            self.fill.as_ref()
+        }
+    }
+
+    /// Course plots represent geographic coordinates rather than scalar values,
+    /// so numerical point value labels are not applicable.
+    pub fn effective_point_label(&self) -> Option<&PointLabelConfig> {
+        if self.is_course() {
+            None
+        } else {
+            self.point_label.as_ref()
+        }
+    }
+
     pub fn line_width(&self) -> f32 {
         self.line.as_ref().and_then(|l| l.width).unwrap_or(1.75)
     }
 
     pub fn fill_opacity(&self) -> Option<f32> {
-        self.fill.as_ref().and_then(|f| f.opacity)
+        self.effective_fill().and_then(|f| f.opacity)
     }
 
     pub fn fill_color(&self) -> String {
-        self.fill
-            .as_ref()
+        self.effective_fill()
             .and_then(|f| f.color.clone())
             .or_else(|| self.color.clone())
             .unwrap_or_else(|| "#ffffff".to_string())
@@ -898,6 +920,17 @@ impl Template {
                 template.scene.font_size = template.scene.font_size.map(|s| s * factor as f32);
                 for el in &mut template.elements {
                     el.scale(factor);
+                }
+            }
+        }
+
+        // Strip irrelevant fill and point_label from course plots on load.
+        // GPS routes have no area under a curve and coordinates are not scalar metrics.
+        for el in &mut template.elements {
+            if let Element::Plot(c) = el {
+                if c.is_course() {
+                    c.fill = None;
+                    c.point_label = None;
                 }
             }
         }
@@ -1258,5 +1291,56 @@ mod tests {
         let plot = plot.expect("flyover has a course plot");
         assert_eq!(plot.value, "course");
         assert_eq!(plot.line.as_ref().and_then(|l| l.future_opacity), Some(0.0));
+    }
+
+    #[test]
+    fn course_plots_strip_fill_and_point_label_on_template_load() {
+        let raw = serde_json::json!({
+            "scene": { "width": 100, "height": 100 },
+            "elements": [
+                {
+                    "type": "plot",
+                    "id": "map",
+                    "value": "course",
+                    "x": 0, "y": 0, "width": 100, "height": 100,
+                    "fill": { "opacity": 0.5, "color": "#ff0000" },
+                    "point_label": { "font_size": 24, "color": "#ffffff" }
+                },
+                {
+                    "type": "plot",
+                    "id": "elevation",
+                    "value": "elevation",
+                    "x": 0, "y": 0, "width": 100, "height": 100,
+                    "fill": { "opacity": 0.5, "color": "#00ff00" },
+                    "point_label": { "font_size": 24, "color": "#ffffff" }
+                }
+            ]
+        });
+        let t = Template::from_value(raw).unwrap();
+        let map_el = t
+            .elements
+            .iter()
+            .find_map(|e| match e {
+                Element::Plot(c) if c.id == "map" => Some(c),
+                _ => None,
+            })
+            .unwrap();
+        assert!(map_el.fill.is_none());
+        assert!(map_el.point_label.is_none());
+        assert!(map_el.effective_fill().is_none());
+        assert!(map_el.effective_point_label().is_none());
+
+        let elev_el = t
+            .elements
+            .iter()
+            .find_map(|e| match e {
+                Element::Plot(c) if c.id == "elevation" => Some(c),
+                _ => None,
+            })
+            .unwrap();
+        assert!(elev_el.fill.is_some());
+        assert!(elev_el.point_label.is_some());
+        assert!(elev_el.effective_fill().is_some());
+        assert!(elev_el.effective_point_label().is_some());
     }
 }
