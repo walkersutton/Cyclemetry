@@ -8,7 +8,7 @@
 
 - [ ] **Finalize the donation backend for the Fund the App page.** `website/content/fund.json` currently points `donateUrl` at `https://github.com/sponsors/walkersutton` as a **placeholder**. GitHub Sponsors can't be tied to a repo — it targets an account — so to make donations read as "Cyclemetry" not "Walker Sutton" we'd need a `cyclemetry` GitHub org (heavier; org goals are monthly-subscription oriented). Leaning toward **Ko-fi** (`ko-fi.com/cyclemetry`) instead: branded page, built-in one-time goal bar, low fees. Once chosen: update `donateUrl` in `fund.json`, and update the `raised`/`supporters`/`lastUpdated` totals by hand as donations arrive. The page renders its own $99/year progress graphic from that JSON, so the platform only needs to accept money under the Cyclemetry name.
 
-- [ ] **Move overlay trim ears to the bottom timeline.** The left sidebar already has draggable handles for `scene.start` / `scene.end`; move or duplicate that interaction on the bottom playback timeline so users can trim the overlay window where they scrub. The ears should bracket the overlay window within the full activity range, similar to the distance-reference dot, and keep the sidebar inputs in sync.
+- [x] **Move overlay trim ears to the bottom timeline.** The left sidebar already has draggable handles for `scene.start` / `scene.end`; move or duplicate that interaction on the bottom playback timeline so users can trim the overlay window where they scrub. The ears should bracket the overlay window within the full activity range, similar to the distance-reference dot, and keep the sidebar inputs in sync.
 
 - [ ] **Aspect-ratio template variants.** Non-16:9 output now retargets the
   canvas and uniformly height-scales the authored template, so elements

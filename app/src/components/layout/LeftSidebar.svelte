@@ -4,6 +4,7 @@
   import ElementList from '../panels/ElementList.svelte'
   import OpacityControl from '../ui/OpacityControl.svelte'
   import Select from '../ui/Select.svelte'
+  import { computeTrimDrag, trimFromKey } from '@/lib/trimDragMath.js'
 
   const app = getContext('app')
 
@@ -98,34 +99,68 @@
   let trackEl = $state(null)
   let drag = $state(null)
 
-  function clamp(v, lo, hi) {
-    return Math.min(hi, Math.max(lo, v))
-  }
-
   function beginDrag(handle, e) {
     if (!trackEl) return
     e.preventDefault()
     trackEl.setPointerCapture(e.pointerId)
-    app.beginEditBatch?.()
+    app.beginEditBatch()
     const initial =
       handle === 'start'
         ? (app.config?.scene?.start ?? 0)
         : (app.config?.scene?.end ?? app.timelineDuration)
-    drag = { handle, pointerId: e.pointerId, startX: e.clientX, initial }
+    drag = {
+      handle,
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      initial,
+      lastValue: initial,
+    }
   }
 
   function onTrackPointerMove(e) {
     if (!drag || e.pointerId !== drag.pointerId) return
-    const total = Math.max(0.0001, app.timelineDuration ?? 0)
-    const w = trackEl?.offsetWidth ?? 1
-    const dxSec = ((e.clientX - drag.startX) / w) * total
-    const next = Math.round(drag.initial + dxSec)
+    const res = computeTrimDrag({
+      handle: drag.handle,
+      initial: drag.initial,
+      startX: drag.startX,
+      clientX: e.clientX,
+      trackWidth: trackEl?.offsetWidth,
+      total: app.timelineDuration,
+      currentStart: app.config?.scene?.start ?? 0,
+      currentEnd: app.config?.scene?.end ?? app.timelineDuration,
+    })
+    if (res.value === drag.lastValue) return
+    drag.lastValue = res.value
+    app.updateScene({ [res.field]: res.value })
+  }
+
+  let isSidebarKeyBatch = false
+  function onSidebarHandleKeydown(handle, e) {
+    const total = app.timelineDuration
     const start = app.config?.scene?.start ?? 0
     const end = app.config?.scene?.end ?? total
-    if (drag.handle === 'start') {
-      app.updateScene({ start: clamp(next, 0, end - 1) })
-    } else {
-      app.updateScene({ end: clamp(next, start + 1, total) })
+
+    const res = trimFromKey({
+      key: e.key,
+      shiftKey: e.shiftKey,
+      handle,
+      start,
+      end,
+      total,
+    })
+    if (!res) return
+    e.preventDefault()
+    if (!isSidebarKeyBatch) {
+      isSidebarKeyBatch = true
+      app.beginEditBatch()
+    }
+    app.updateScene({ [res.field]: res.value })
+  }
+
+  function onSidebarHandleKeyup() {
+    if (isSidebarKeyBatch) {
+      isSidebarKeyBatch = false
+      app.endEditBatch()
     }
   }
 
@@ -134,7 +169,7 @@
     if (trackEl?.hasPointerCapture(e.pointerId)) {
       trackEl.releasePointerCapture(e.pointerId)
     }
-    app.endEditBatch?.()
+    app.endEditBatch()
     drag = null
   }
 </script>
@@ -200,20 +235,36 @@
                   ></div>
                   <button
                     type="button"
+                    role="slider"
                     aria-label="Overlay start"
+                    aria-valuemin={0}
+                    aria-valuemax={end - 1}
+                    aria-valuenow={start}
+                    aria-valuetext={secToTimecode(start)}
                     onpointerdown={(e) => beginDrag('start', e)}
+                    onkeydown={(e) => onSidebarHandleKeydown('start', e)}
+                    onkeyup={onSidebarHandleKeyup}
+                    onblur={onSidebarHandleKeyup}
                     class="absolute top-0 -translate-x-1/2 h-5 w-3 rounded-sm
                      bg-primary border border-zinc-950 cursor-ew-resize
-                     hover:scale-110 transition-transform"
+                     hover:scale-110 focus:outline-none focus:ring-1 focus:ring-white transition-transform"
                     style="left: {startPct}%"
                   ></button>
                   <button
                     type="button"
+                    role="slider"
                     aria-label="Overlay end"
+                    aria-valuemin={start + 1}
+                    aria-valuemax={total}
+                    aria-valuenow={end}
+                    aria-valuetext={secToTimecode(end)}
                     onpointerdown={(e) => beginDrag('end', e)}
+                    onkeydown={(e) => onSidebarHandleKeydown('end', e)}
+                    onkeyup={onSidebarHandleKeyup}
+                    onblur={onSidebarHandleKeyup}
                     class="absolute top-0 -translate-x-1/2 h-5 w-3 rounded-sm
                      bg-primary border border-zinc-950 cursor-ew-resize
-                     hover:scale-110 transition-transform"
+                     hover:scale-110 focus:outline-none focus:ring-1 focus:ring-white transition-transform"
                     style="left: {endPct}%"
                   ></button>
                 </div>

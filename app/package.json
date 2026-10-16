@@ -10,6 +10,7 @@
     "vite-build": "vite build",
     "preview": "vite preview",
     "lint": "eslint .",
+    "test": "node --test src/lib/*.test.js",
     "format": "prettier --write .",
     "sync-version": "node ../scripts/sync-version.mjs",
     "release": "node ../scripts/release.mjs"

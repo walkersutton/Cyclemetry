@@ -81,4 +81,4 @@ Do not deviate without explicit user approval.
 In QA mode, flag any code that doesn't match DESIGN.md.
 
 ## UI Conventions
-- Every clickable element (`button`, `a`, or interactive `div`) must have `cursor-pointer` in its Tailwind classes.
+- Every clickable element (`button`, `a`, or interactive `div`) must have `cursor-pointer` in its Tailwind classes, except directional drag handles which use directional cursors such as `cursor-ew-resize` or `cursor-ns-resize`.

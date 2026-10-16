@@ -2,6 +2,7 @@
   import { formatTime, TOOLTIP_DELAY } from '@/lib/utils.js'
   import { Play, Pause, SkipBack, SkipForward } from 'lucide-svelte'
   import Tooltip from '@/components/ui/Tooltip.svelte'
+  import { computeTrimDrag, trimFromKey } from '@/lib/trimDragMath.js'
 
   let {
     playhead = $bindable(0),
@@ -25,15 +26,20 @@
     onmarkerdistancechange,
     // Race window for lap counting: { start, end } in ride seconds, or null
     // when no lap-metric element is selected. Rendered as a second playback
-    // bar with two handles — race start (green) and race finish (checkered).
+    // bar with two handles: race start (green) and race finish (checkered).
     lapGate = null,
     onlapgatechange,
+    // Full activity timeline duration in seconds for overlay trim brackets
+    timelineDuration = 0,
+    ontrimchange,
+    onbegintrim,
+    onendtrim,
   } = $props()
 
-  // Scrubbing is bounded to the overlay render window — the bar's left
-  // edge IS sceneStart, right edge IS sceneEnd. Visualizing the overlay's
-  // position within the broader activity happens on the LeftSidebar mini
-  // GPX track and the VideoAlignmentBar.
+  // Scrubbing is bounded to the overlay render window (start to end).
+  // The broader activity context and overlay window are visualized on the
+  // activity trim track above the scrub bar, as well as in the LeftSidebar
+  // and VideoAlignmentBar.
   function seek(s) {
     playhead = Math.max(start, Math.min(s, end))
     onseek?.(playhead)
@@ -152,9 +158,163 @@
         : 'marker-checkered',
   )
   let markerCss = $derived(`--cm-thumb: ${markerColor || '#ef4444'}`)
+
+  // ── Overlay trim handles (brackets) ────────────────────────────────────
+  let trimTrackEl = $state(null)
+  let trimDrag = $state(null)
+
+  let trimTotal = $derived(Math.max(0.0001, timelineDuration ?? 0))
+  let trimStartPct = $derived(
+    timelineDuration > 0
+      ? Math.max(0, Math.min(100, (start / trimTotal) * 100))
+      : 0,
+  )
+  let trimEndPct = $derived(
+    timelineDuration > 0
+      ? Math.max(0, Math.min(100, (end / trimTotal) * 100))
+      : 100,
+  )
+  let trimWindowWidthPct = $derived(Math.max(0, trimEndPct - trimStartPct))
+  let trimPlayheadPct = $derived(
+    timelineDuration > 0
+      ? Math.max(0, Math.min(100, (smoothPlayhead / trimTotal) * 100))
+      : 0,
+  )
+
+  function beginTrimDrag(handle, e) {
+    if (!trimTrackEl) return
+    e.preventDefault()
+    trimTrackEl.setPointerCapture(e.pointerId)
+    onbegintrim?.()
+    const initial = handle === 'start' ? start : end
+    trimDrag = {
+      handle,
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      initial,
+      lastValue: initial,
+    }
+  }
+
+  function onTrimPointerMove(e) {
+    if (!trimDrag || e.pointerId !== trimDrag.pointerId) return
+    const res = computeTrimDrag({
+      handle: trimDrag.handle,
+      initial: trimDrag.initial,
+      startX: trimDrag.startX,
+      clientX: e.clientX,
+      trackWidth: trimTrackEl?.offsetWidth,
+      total: timelineDuration,
+      currentStart: start,
+      currentEnd: end,
+    })
+    if (res.value === trimDrag.lastValue) return
+    trimDrag.lastValue = res.value
+    ontrimchange?.(res.field, res.value)
+    seek(res.value)
+  }
+
+  let isTrimKeyBatch = false
+  function onTrimHandleKeydown(handle, e) {
+    const res = trimFromKey({
+      key: e.key,
+      shiftKey: e.shiftKey,
+      handle,
+      start,
+      end,
+      total: timelineDuration,
+    })
+    if (!res) return
+    e.preventDefault()
+    if (!isTrimKeyBatch) {
+      isTrimKeyBatch = true
+      onbegintrim?.()
+    }
+    ontrimchange?.(res.field, res.value)
+    seek(res.value)
+  }
+
+  function onTrimHandleKeyup() {
+    if (isTrimKeyBatch) {
+      isTrimKeyBatch = false
+      onendtrim?.()
+    }
+  }
+
+  function endTrimDrag(e) {
+    if (!trimDrag) return
+    if (trimTrackEl?.hasPointerCapture(e.pointerId)) {
+      trimTrackEl.releasePointerCapture(e.pointerId)
+    }
+    onendtrim?.()
+    trimDrag = null
+  }
 </script>
 
 <div class="flex flex-col gap-2 px-5 pt-3.5 pb-4 border-t border-white/[0.06]">
+  <!-- Overlay trim bar: brackets the render window within the full activity range -->
+  {#if timelineDuration > 0}
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div
+      bind:this={trimTrackEl}
+      class="relative h-4 select-none flex items-center"
+      onpointermove={onTrimPointerMove}
+      onpointerup={endTrimDrag}
+      onpointercancel={endTrimDrag}
+      title="Overlay trim range: {formatTime(start)} → {formatTime(
+        end,
+      )} ({formatTime(timelineDuration)} total)"
+    >
+      <div
+        class="absolute inset-x-0 top-1.5 h-1 rounded-full bg-[var(--panel3)]"
+      ></div>
+      <div
+        class="absolute top-1.5 h-1 bg-primary/70 rounded-full"
+        style="left: {trimStartPct}%; width: {trimWindowWidthPct}%"
+      ></div>
+      <div
+        class="absolute top-1 -translate-x-1/2 w-2 h-2 rounded-full bg-white/90 shadow-sm pointer-events-none"
+        style="left: {trimPlayheadPct}%"
+      ></div>
+      <button
+        type="button"
+        role="slider"
+        aria-label="Overlay start"
+        aria-valuemin={0}
+        aria-valuemax={end - 1}
+        aria-valuenow={start}
+        aria-valuetext={formatTime(start)}
+        onpointerdown={(e) => beginTrimDrag('start', e)}
+        onkeydown={(e) => onTrimHandleKeydown('start', e)}
+        onkeyup={onTrimHandleKeyup}
+        onblur={onTrimHandleKeyup}
+        class="absolute top-0 -translate-x-1/2 h-4 w-2.5 rounded-sm
+         bg-primary border border-zinc-950 cursor-ew-resize
+         hover:scale-125 focus:outline-none focus:ring-1 focus:ring-white transition-transform shadow z-10"
+        style="left: {trimStartPct}%"
+        title="Overlay start: {formatTime(start)}"
+      ></button>
+      <button
+        type="button"
+        role="slider"
+        aria-label="Overlay end"
+        aria-valuemin={start + 1}
+        aria-valuemax={timelineDuration}
+        aria-valuenow={end}
+        aria-valuetext={formatTime(end)}
+        onpointerdown={(e) => beginTrimDrag('end', e)}
+        onkeydown={(e) => onTrimHandleKeydown('end', e)}
+        onkeyup={onTrimHandleKeyup}
+        onblur={onTrimHandleKeyup}
+        class="absolute top-0 -translate-x-1/2 h-4 w-2.5 rounded-sm
+         bg-primary border border-zinc-950 cursor-ew-resize
+         hover:scale-125 focus:outline-none focus:ring-1 focus:ring-white transition-transform shadow z-10"
+        style="left: {trimEndPct}%"
+        title="Overlay end: {formatTime(end)}"
+      ></button>
+    </div>
+  {/if}
+
   <!-- Scrub bar with buffered indicator -->
   <div class="relative h-5 flex items-center">
     <!-- Buffered ranges (visual only) -->

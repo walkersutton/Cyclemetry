@@ -6,6 +6,7 @@
     "dev": "node scripts/dev.mjs",
     "build": "CYCLEMETRY_BUILD_STAMP=$(date +%s) app/node_modules/.bin/tauri build",
     "lint": "pnpm --dir app lint",
+    "test": "pnpm --dir app test",
     "build:wasm": "node scripts/build-wasm.mjs",
     "format": "node scripts/update-templates-readme.mjs && pnpm --dir app format && cargo fmt --manifest-path src-tauri/Cargo.toml",
     "release:check": "node scripts/release-check.mjs",
